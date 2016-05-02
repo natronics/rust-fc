@@ -6,3 +6,15 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+
+after_success: |
+    [ $TRAVIS_RUST_VERSION = stable ] &&
+    cargo doc --no-deps &&
+    echo '<meta http-equiv=refresh content=0;url=rust_fc/index.html>' > target/doc/index.html &&
+    cd target/doc/ &&
+    git init &&
+    git config user.name "Travis CI" &&
+    git config user.email "nathan.bergey@gmail.com" &&
+    git add . &&
+    git commit -m "Travis Deploy to GitHub Pages" &&
+    git push --force --quiet "https://${GH_TOKEN}@github.com/natronics/rust-fc.git" master:gh-pages > /dev/null 2>&1
