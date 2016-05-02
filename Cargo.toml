@@ -1,0 +1,5 @@
+[package]
+
+name = "rust-fc"
+version = "0.0.1"
+authors = [ "Nathan Bergey <nathan.bergey@gmail.com>" ]
