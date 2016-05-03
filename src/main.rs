@@ -10,31 +10,14 @@ extern crate byteorder;
 use std::net::UdpSocket;
 use std::net::SocketAddr;
 use std::io::Error;
-use std::mem;
 use std::io::Cursor;
 use byteorder::{ReadBytesExt, BigEndian};
 
 const PSAS_LISTEN_UDP_PORT: u16 = 36000;
 const PSAS_ADIS_PORT: u16 = 35020;
 
-#[repr(C)]
-struct ADIS16405Data {
-    vcc: i16,
-	gyro_x: i16,
-	gyro_y: i16,
-	gyro_z: i16,
-	acc_x: i16,
-	acc_y: i16,
-	acc_z: i16,
-	magn_x: i16,
-	magn_y: i16,
-	magn_z: i16,
-	temp: i16,
-	aux_adc: u16,
-}
-const SIZE_OF_ADISDATA: usize = 24;
-
-
+/// Gravity
+const G_0: f64 = 9.80665;
 
 /// Listen on the data port for messages
 ///
@@ -70,11 +53,11 @@ pub fn demux_udp() -> Result<(), Error> {
 /// away.
 pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500]) {
 
-    // The seqnunce number is the first 4 bytes
+    // The sequence number is the first 4 bytes
     let mut buf = Cursor::new(&raw_bytes[..4]);
     let seqn = buf.read_u32::<BigEndian>().unwrap();
 
-    println!("    Packet SEQN: {}", seqn);
+    println!("    Packet Sequence number: {}", seqn);
 
     // The message is the rest
     let message = &raw_bytes[4..];
@@ -90,21 +73,36 @@ pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500]) {
 
 /// Receives an ADIS message
 ///
-/// Get the message byte array into the ADIS data struct
+/// Unrwap a byte array assuming network endian into fields in the ADIS Data
+/// type.
 pub fn recv_adis(buffer: &[u8]) {
 
-    let buffer_ptr: *const u8 = buffer.as_ptr();
-    let message_ptr: *const ADIS16405Data = buffer_ptr as *const _;
-    let message_ref: &ADIS16405Data = unsafe { &*message_ptr };
+    println!("    Packet type: ADIS");
 
-    println!("    VCC: {}", message_ref.vcc);
-    println!("    Gyro X: {}", message_ref.gyro_x);
-    println!("    Accel X: {}", message_ref.acc_x);
+    // Convert fields:
+
+    // VCC
+    let mut buf = Cursor::new(&buffer[..2]);
+    let mut vcc: f64 = buf.read_i16::<BigEndian>().unwrap() as f64;
+    vcc = vcc * 0.002418;
+
+    // Gyro X
+    let mut buf = Cursor::new(&buffer[2..4]);
+    let mut gyro_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64;
+    gyro_x = gyro_x * 0.05;
+
+    // Accel X
+    let mut buf = Cursor::new(&buffer[8..10]);
+    let mut accel_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64;
+    accel_x = accel_x * 0.00333 * G_0;
+
+    println!("    VCC: {}", vcc);
+    println!("    Gyro X: {}", gyro_x);
+    println!("    Accel X: {}", accel_x);
+
 }
 
 fn main() {
-    assert!(SIZE_OF_ADISDATA == mem::size_of::<ADIS16405Data>());
-
     println!("Launch!");
 
     demux_udp().unwrap();
