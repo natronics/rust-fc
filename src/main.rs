@@ -5,10 +5,14 @@
 //! A minimal clone of PSAS's [av3-fc](https://github.com/psas/av3-fc) rocket
 //! flight computer executive process written in Rust for fun.
 
+extern crate byteorder;
+
 use std::net::UdpSocket;
 use std::net::SocketAddr;
 use std::io::Error;
 use std::mem;
+use std::io::Cursor;
+use byteorder::{ReadBytesExt, BigEndian};
 
 const PSAS_LISTEN_UDP_PORT: u16 = 36000;
 const PSAS_FC_HEALTH_PORT: u16 = 36201;
@@ -73,27 +77,37 @@ pub fn demux_udp() -> Result<(), Error> {
 /// away.
 pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500]) {
 
-    let mut seqn = -1;
+    // The seqnunce number is the first 4 bytes
+    let mut buf = Cursor::new(&raw_bytes[..4]);
+    let seqn = buf.read_u32::<BigEndian>().unwrap();
 
+    println!("    Packet SEQN: {}", seqn);
+
+    // The message is the rest
     let message = &raw_bytes[4..];
 
     // The PSAS system message types are defined by the port they're sent from
     match recv_addr.port() {
-        PSAS_ADIS_PORT => {
-            unsafe {
-                // Copy the bytes that make up the message to an ADISMessage
-                // type. We can't know if this is safe since it depends on the
-                // contents of the array at runtime
-                let message: ADISMessage = mem::transmute_copy(&message);
-                println!("    ADIS.accel_x: {}", message.data.acc_x)
-            }
-        },
+        PSAS_ADIS_PORT => recv_adis(message),
         _ => { ; } // Default case: do nothing
     }
 
 
 }
 
+/// Receives an ADIS message
+///
+/// Get the message byte array into the ADIS data struct
+pub fn recv_adis(message: &[u8]) {
+
+    unsafe {
+        let message: ADISMessage = mem::transmute_copy(&message);
+        println!("    ADIS.accel_x: {}", message.data.acc_x);
+        println!("    ADIS.accel_y: {}", message.data.acc_y);
+        println!("    ADIS.accel_z: {}", message.data.acc_z);
+    }
+
+}
 
 fn main() {
     println!("Launch!");
