@@ -15,10 +15,9 @@ use std::io::Cursor;
 use byteorder::{ReadBytesExt, BigEndian};
 
 const PSAS_LISTEN_UDP_PORT: u16 = 36000;
-const PSAS_FC_HEALTH_PORT: u16 = 36201;
 const PSAS_ADIS_PORT: u16 = 35020;
 
-#[repr(packed)]
+#[repr(C)]
 struct ADIS16405Data {
     vcc: i16,
 	gyro_x: i16,
@@ -33,14 +32,8 @@ struct ADIS16405Data {
 	temp: i16,
 	aux_adc: u16,
 }
+const SIZE_OF_ADISDATA: usize = 24;
 
-#[repr(packed)]
-struct ADISMessage {
-	id: [char; 4],
-	timestamp: [u8; 6],
-	data_length: u16,
-	data: ADIS16405Data,
-}
 
 
 /// Listen on the data port for messages
@@ -98,18 +91,20 @@ pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500]) {
 /// Receives an ADIS message
 ///
 /// Get the message byte array into the ADIS data struct
-pub fn recv_adis(message: &[u8]) {
+pub fn recv_adis(buffer: &[u8]) {
 
-    unsafe {
-        let message: ADISMessage = mem::transmute_copy(&message);
-        println!("    ADIS.accel_x: {}", message.data.acc_x);
-        println!("    ADIS.accel_y: {}", message.data.acc_y);
-        println!("    ADIS.accel_z: {}", message.data.acc_z);
-    }
+    let buffer_ptr: *const u8 = buffer.as_ptr();
+    let message_ptr: *const ADIS16405Data = buffer_ptr as *const _;
+    let message_ref: &ADIS16405Data = unsafe { &*message_ptr };
 
+    println!("    VCC: {}", message_ref.vcc);
+    println!("    Gyro X: {}", message_ref.gyro_x);
+    println!("    Accel X: {}", message_ref.acc_x);
 }
 
 fn main() {
+    assert!(SIZE_OF_ADISDATA == mem::size_of::<ADIS16405Data>());
+
     println!("Launch!");
 
     demux_udp().unwrap();
