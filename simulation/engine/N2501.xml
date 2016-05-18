@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<rocket_engine name="Pro98 6G 15227 N2501-WH Plugged">
+  <isp> 179.0 </isp>
+  <builduptime> 0.2 </builduptime>
+  <variation>
+    <thrust>    0.00 </thrust>
+    <total_isp> 0.00 </total_isp>
+  </variation>
+  <thrust_table name="propulsion/thrust_prop_remain" type="internal">
+    <tableData><!--
+      =========   =========
+      Prop Burn    Thrust
+      (Wt, lbs)    (lbf)
+      =========   ========= -->
+          0.5      1000.0
+          2.0       700.0
+         10.0       580.0
+         17.0       580.0
+         18.5       300.0
+    </tableData>
+  </thrust_table>
+</rocket_engine>

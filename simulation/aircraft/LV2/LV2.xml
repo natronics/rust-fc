@@ -1,0 +1,132 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="http://jsbsim.sourceforge.net/JSBSim.xsl"?>
+<fdm_config version="2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://jsbsim.sourceforge.net/JSBSim.xsd"
+    name="PSAS LV2" release="ALPHA">
+
+    <fileheader>
+      <author> Nathan Bergey </author>
+      <filecreationdate> 2016-05-15 </filecreationdate>
+      <version> 0.1 </version>
+      <description> Small low-altitude test rocket for Portland State Aerospace Society </description>
+      <note></note>
+    </fileheader>
+
+
+    <!-- Main aerodynamic properties -->
+    <metrics>
+        <wingarea   unit="M2">  0.015 </wingarea>  <!-- Cross sectional area -->
+        <wingspan   unit="M">   0.14  </wingspan>  <!-- Width of body -->
+        <chord      unit="M">   0.14  </chord>
+        <htailarea  unit="M2">  0.0   </htailarea>
+        <htailarm   unit="M">   0.0   </htailarm>
+        <vtailarea  unit="M2">  0.0   </vtailarea>
+        <vtailarm   unit="M">   0.0   </vtailarm>
+        <location name="AERORP" unit="M">
+            <x>  2.72 </x>                         <!-- Center of Pressure (M=0.3) -->
+            <y>  0    </y>
+            <z>  0    </z>
+        </location>
+    </metrics>
+
+
+    <!--########################################################################
+    Mass Balance
+    #########################################################################-->
+    <mass_balance>
+
+        <!-- Rocket Body -->
+        <ixx unit="KG*M2">    0.259  </ixx>
+        <iyy unit="KG*M2">    0.436  </iyy>
+        <izz unit="KG*M2">    0.436  </izz>
+        <ixy unit="KG*M2">    0      </ixy>
+        <ixz unit="KG*M2">    0      </ixz>
+        <iyz unit="KG*M2">    0      </iyz>
+        <emptywt unit="KG">  26.25   </emptywt>
+        <location name="CG" unit="M">
+            <x> 2.51 </x>
+            <y> 0 </y>
+            <z> 0 </z>
+        </location>
+    </mass_balance>
+
+
+    <!--########################################################################
+    Propulsion
+    #########################################################################-->
+    <propulsion>
+
+        <engine file="N2501">
+           <location unit="M">
+             <x> 2.0   </x>
+             <y>  0    </y>
+             <z>  0    </z>
+           </location>
+           <feed>0</feed>
+           <thruster file="N2501_nozzle">
+             <location unit="M">
+               <x> 3.5 </x>
+               <y> 0   </y>
+               <z> 0   </z>
+             </location>
+           </thruster>
+         </engine>
+
+         <tank type="FUEL">
+           <location unit="M">
+             <x> 2.5   </x>
+             <y>  0    </y>
+             <z>  0    </z>
+           </location>
+           <radius unit="M">0.092</radius>
+           <grain_config type="CYLINDRICAL">
+             <length unit="M"> 1.01 </length>
+             <bore_diameter unit="M"> 0.01 </bore_diameter>
+           </grain_config>
+           <capacity unit="KG"> 8.704 </capacity>
+           <contents unit="KG"> 8.704 </contents>
+         </tank>
+
+    </propulsion>
+
+    <!--########################################################################
+    Aero, right now a constant Coef. of drag of 0.8
+    #########################################################################-->
+    <aerodynamics>
+        <axis name="DRAG">
+            <function name="aero/coefficient/CD">
+                <description>Drag</description>
+                <product>
+                    <property>aero/qbar-psf</property>
+                    <property>metrics/Sw-sqft</property>
+                    <value>0.8</value>
+                </product>
+            </function>
+        </axis>
+    </aerodynamics>
+
+
+    <ground_reactions /><!-- Not used - hold down model keeps vehicle in place -->
+    <system name="Guidance Executive" file="GuidanceExecutive" />
+
+    <!-- Output -->
+    <output name="data.csv" type="CSV" rate="100">
+      <property caption="MET [s]">              guidance/executive/MET          </property>
+      <property caption="Altitude MSL [m]">     position/h-sl-meters            </property>
+      <property caption="Latitude [deg]">       position/lat-gc-deg             </property>
+      <property caption="Longitdue [deg]">      position/long-gc-deg            </property>
+      <property caption="Thrust [lbf]">         forces/fbx-prop-lbs             </property>
+      <property caption="Total Mass [lbs]">     inertia/weight-lbs              </property>
+      <property caption="Pitch [deg]">          attitude/theta-deg              </property>
+      <property caption="ECEF Velocity [fps]">  velocities/ned-velocity-mag-fps </property>
+      <property caption="ECI Velocity [fps]">   velocities/eci-velocity-mag-fps </property>
+      <property caption="ECEF Vel. Down [fps]"> velocities/v-down-fps           </property>
+      <property caption="qbar [psf]">           /fdm/jsbsim/aero/qbar-psf       </property>
+      <property caption="Accel U [ft/s^2]">     accelerations/udot-ft_sec2      </property>
+      <property caption="Accel V [ft/s^2]">     accelerations/vdot-ft_sec2      </property>
+      <property caption="Accel W [ft/s^2]">     accelerations/wdot-ft_sec2      </property>
+      <property caption="Downrange [m]">        position/distance-from-start-mag-mt </property>
+      <property caption="Angle of Attack [deg]">aero/alpha-deg                  </property>
+      <property caption="Roll Rate [rad/s]">    velocities/p-rad_sec            </property>
+    </output>
+
+</fdm_config>

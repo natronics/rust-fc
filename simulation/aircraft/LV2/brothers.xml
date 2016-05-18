@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<initialize name="brothers">
+
+  <!-- body frame -->
+  <ubody     unit="M/SEC">   0.0  </ubody>
+  <vbody     unit="M/SEC">   0.0  </vbody>
+  <wbody     unit="M/SEC">   0.0  </wbody>
+  <phi       unit="DEG">     0.0  </phi>        <!-- Yaw -->
+  <theta     unit="DEG">    90.0  </theta>      <!-- Pitch, 90=pointed up -->
+  <psi       unit="DEG">     0.0  </psi>        <!-- Roll -->
+  <altitude  unit="M">       3.5  </altitude>   <!-- AGL. for height above sea level see elevation, below -->
+
+  <!-- launch site -->
+  <latitude  unit="DEG">    43.798582  </latitude>
+  <longitude unit="DEG">  -120.648512  </longitude>
+  <elevation unit="M">    1390.0       </elevation>
+  <winddir   unit="DEG">   180.0       </winddir>
+  <vwind     unit="FT/SEC">  0.0       </vwind>
+
+</initialize>

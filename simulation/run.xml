@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="http://jsbsim.sf.net/JSBSimScript.xsl"?>
+<runscript xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://jsbsim.sf.net/JSBSimScript.xsd"
+  name="LV2">
+
+  <use aircraft="LV2" initialize="brothers"/>
+
+  <!-- Control JSBSim console interface on TCP 5124 -->
+  <input port="5124" />
+
+  <!-- Run simulation for 50 seconds, output data a 1 kHz -->
+  <run start="0.0" end="50">
+    <description>
+      PSAS Launch 12
+    </description>
+
+    <!-- start off on the ground -->
+    <property value="1"> forces/hold-down </property>
+
+    <!-- Liftoff -->
+    <event name="Liftoff!!">
+      <condition>forces/fbx-prop-lbs gt inertia/weight-lbs</condition>
+      <set name="forces/hold-down" value="0"/>
+      <notify>
+        <property caption="MET [s]">  guidance/executive/MET   </property>
+      </notify>
+    </event>
+
+    <!-- Burnout -->
+    <event name="Motor Burnout">
+      <condition>propulsion/tank[0]/contents-lbs lt 0.1</condition>
+      <notify>
+        <property caption="MET [s]">  guidance/executive/MET   </property>
+        <property caption="Altitude [m]"> position/h-sl-meters  </property>
+        <property caption="Vertical velocity [fps]"> velocities/v-down-fps </property>
+      </notify>
+    </event>
+
+    <!-- Zero Vertical Velocity -->
+    <event name="Apogee">
+      <condition>velocities/v-down-fps gt 1</condition>
+      <notify>
+        <property caption="MET [s]">  guidance/executive/MET   </property>
+        <property caption="Altitude [m]"> position/h-sl-meters  </property>
+      </notify>
+    </event>
+
+  </run>
+</runscript>
