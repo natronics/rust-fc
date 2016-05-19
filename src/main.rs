@@ -13,17 +13,31 @@ use std::io::Error;
 use std::io::Cursor;
 use byteorder::{ReadBytesExt, BigEndian};
 
+
+/// Ports for data
 const PSAS_LISTEN_UDP_PORT: u16 = 36000;
 const PSAS_ADIS_PORT: u16 = 35020;
 
 /// Gravity
 const G_0: f64 = 9.80665;
 
+/// State: position and velocity
+pub struct State {
+    x: f64,
+    v: f64,
+}
+
+/// Unwrapped ADIS data
+pub struct ADIS {
+    vcc: f64,
+    acc_x: f64,
+}
+
 /// Listen on the data port for messages
 ///
 /// Binds to the PSAS data port and listens for messages. Listening is blocking
 /// because if we're not receiving data, we do nothing (sleep).
-pub fn demux_udp() -> Result<(), Error> {
+pub fn demux_udp(state: &mut State) -> Result<(), Error> {
 
     println!("Listening UDP ...");
 
@@ -40,7 +54,7 @@ pub fn demux_udp() -> Result<(), Error> {
     println!("Ping! Received {} bytes from port {}", num_recv_bytes, recv_addr.port());
 
     // Send it to the sequenced packet receiver
-    sequence_recv(recv_addr, buf);
+    sequence_recv(recv_addr, buf, state);
 
     Ok(())
 }
@@ -51,7 +65,7 @@ pub fn demux_udp() -> Result<(), Error> {
 /// We'll keep track of what packet types we've received and their sequence
 /// numbers. If a packed arrives out of order we log it, but otherwise throw it
 /// away.
-pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500]) {
+pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500], state: &mut State) {
 
     // The sequence number is the first 4 bytes
     let mut buf = Cursor::new(&raw_bytes[..4]);
@@ -64,7 +78,7 @@ pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500]) {
 
     // The PSAS system message types are defined by the port they're sent from
     match recv_addr.port() {
-        PSAS_ADIS_PORT => recv_adis(message),
+        PSAS_ADIS_PORT => recv_adis(message, state),
         _ => { ; } // Default case: do nothing
     }
 
@@ -75,7 +89,7 @@ pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500]) {
 ///
 /// Unrwap a byte array assuming network endian into fields in the ADIS Data
 /// type.
-pub fn recv_adis(buffer: &[u8]) {
+pub fn recv_adis(buffer: &[u8], state: &mut State) {
 
     println!("    Packet type: ADIS");
 
@@ -96,14 +110,32 @@ pub fn recv_adis(buffer: &[u8]) {
     let mut accel_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64;
     accel_x = accel_x * 0.00333 * G_0;
 
+    let adis = ADIS {vcc: vcc, acc_x: accel_x};
+
     println!("    VCC: {}", vcc);
     println!("    Gyro X: {}", gyro_x);
     println!("    Accel X: {}", accel_x);
 
+    update_state(state, adis);
 }
+
+/// Update our internal rocket state
+pub fn update_state(state: &mut State, adis: ADIS) {
+
+    state.v += adis.acc_x;
+    state.x += state.v;
+
+    println!("    New State X: {}", state.x);
+    println!("    New State V: {}", state.v);
+}
+
 
 fn main() {
     println!("Launch!");
 
-    demux_udp().unwrap();
+    // Initialize state
+    let mut state = State { x: 0.0, v: 0.0 };
+
+    // The only thing we do is listen for data
+    demux_udp(&mut state).unwrap();
 }
