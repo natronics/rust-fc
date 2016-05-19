@@ -29,10 +29,12 @@ You can also use cargo to run the executable:
 
 This will start the flight computer, however it will do nothing until data is feed into it. There is a small python test utility in the `test` directory that will generate a data packet and send it to the running flight computer process.
 
-Start rust fc with `cargo run` then in another terminal run the test script:
+Start `rust-fc` with the `cargo run` command, and then in another terminal run a simulation to send real-time data to the flight computer:
 
-    $ cd test
-    $ ./send_data.py
+    $ cd simulation
+    $ ./run.py
+
+Be sure to read the [README](simulation/README.markdown) in the simulation folder to install the flight simulator and other dependencies.
 
 
 Module Documentation
