@@ -33,7 +33,8 @@ p = subprocess.Popen([
     "--suspend",
     "--nice",
     "--simulation-rate=1000",
-    "--logdirectivefile=output.xml",
+    "--logdirectivefile=output_UDP.xml",
+    "--logdirectivefile=output_file.xml",
     "--script=run.xml"
 ])
 
