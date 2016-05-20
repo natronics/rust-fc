@@ -79,9 +79,9 @@ while True:
                 'Gyro_X': 0.0,
                 'Gyro_Y': 0,
                 'Gyro_Z': 1,
-                'Acc_X': -acc_U * FPS2M,  # inverted to match IMU on rocket
-                'Acc_Y':  acc_V * FPS2M,
-                'Acc_Z':  acc_W * FPS2M,
+                'Acc_X': acc_U * FPS2M,
+                'Acc_Y': acc_V * FPS2M,
+                'Acc_Z': acc_W * FPS2M,
                 'Magn_X': 0,
                 'Magn_Y': 0,
                 'Magn_Z': 0,
