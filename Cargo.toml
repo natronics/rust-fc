@@ -6,3 +6,7 @@ authors = [ "Nathan Bergey <nathan.bergey@gmail.com>" ]
 
 [dependencies]
 byteorder = "0.5"
+
+[[bin]]
+name = "main"
+doc = false
