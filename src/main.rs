@@ -70,7 +70,7 @@ pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500], state: &mut S
 
     // The PSAS system message types are defined by the port they're sent from
     match recv_addr.port() {
-        PSAS_ADIS_PORT => devices::recv_adis(message),
+        PSAS_ADIS_PORT => {let adis = devices::recv_adis(message);},
         _ => { ; } // Default case: do nothing
     }
 
