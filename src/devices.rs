@@ -12,23 +12,37 @@ use self::byteorder::{ReadBytesExt, BigEndian};
 pub struct ADIS {
 
     /// VCC [Volts]. The voltage coming into the IMU
-    vcc: f64,
+    pub vcc: f64,
 
     /// X-axis rate-gyro [deg/s]
-    gyro_x: f64,
+    pub gyro_x: f64,
 
     /// Y-axis rate-gyro [deg/s]
-    gyro_y: f64,
+    pub gyro_y: f64,
 
     /// Z-axis rate-gyro [deg/s]
-    gyro_z: f64,
-    acc_x: f64,
-    acc_y: f64,
-    acc_z: f64,
-    magn_x: f64,
-    magn_y: f64,
-    magn_z: f64,
-    temp: f64,
+    pub gyro_z: f64,
+
+    /// X-axis accelerometer [m/s²]
+    pub acc_x: f64,
+
+    /// Y-axis accelerometer [m/s²]
+    pub acc_y: f64,
+
+    /// Z-axis accelerometer [m/s²]
+    pub acc_z: f64,
+
+    /// X-axis magnetometer [Tesla]
+    pub magn_x: f64,
+
+    /// Y-axis magnetometer [Tesla]
+    pub magn_y: f64,
+
+    /// Z-axis magnetometer [Tesla]
+    pub magn_z: f64,
+
+    /// Temperature [Kelvin] of the IMU
+    pub temp: f64,
 }
 
 /// Gravity
@@ -45,10 +59,10 @@ const C2K: f64 = 299.15;
 /// Message size (bytes)
 const SIZE_OF_ADIS: u16 = 28;
 
-/// Receives an ADIS message
+/// # Read an ADIS message from bytes
 ///
-/// Unrwap a byte array assuming network endian into fields in the ADIS Data
-/// type.
+/// Unrwap a byte array (assuming network endianess) into fields for the ADIS
+/// Data type.
 pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
 
     println!("    Packet type: ADIS");
@@ -104,15 +118,15 @@ pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
     let adis = ADIS {
         vcc: vcc,
         gyro_x: gyro_x,
-        gyro_y: gyro_x,
-        gyro_z: gyro_x,
+        gyro_y: gyro_y,
+        gyro_z: gyro_z,
         acc_x: accel_x,
         acc_y: accel_y,
         acc_z: accel_z,
         magn_x: mag_x,
         magn_y: mag_y,
         magn_z: mag_z,
-        temp: 0.0,
+        temp: temp,
     };
 
     println!("    VCC: {}", vcc);

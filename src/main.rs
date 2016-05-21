@@ -1,10 +1,3 @@
-#![doc(html_root_url = "https://natronics.github.io/rust-fc/")]
-
-//! # rust-fc
-//!
-//! A minimal clone of PSAS's [av3-fc](https://github.com/psas/av3-fc) rocket
-//! flight computer executive process written in Rust for fun.
-
 extern crate byteorder;
 
 use std::net::UdpSocket;
@@ -74,11 +67,6 @@ pub fn sequence_recv(recv_addr: SocketAddr, raw_bytes: [u8; 1500], state: &mut S
         _ => { ; } // Default case: do nothing
     }
 
-
-}
-
-/// Log data
-pub fn log_data(buffer: &[u8], size_of_message: u16, state: &mut State) {
 
 }
 
