@@ -1,13 +1,26 @@
+//! # rust-fc/devices
+//!
+//! Code for reading raw data from sensors on the rocket. Currently just
+//! implements the packed ADIS16405 IMU
+
 extern crate byteorder;
 
 use std::io::Cursor;
 use self::byteorder::{ReadBytesExt, BigEndian};
 
-/// Unwrapped and converted ADIS data
+/// Unwrapped and converted ADIS data.
 pub struct ADIS {
+
+    /// VCC [Volts]. The voltage coming into the IMU
     vcc: f64,
+
+    /// X-axis rate-gyro [deg/s]
     gyro_x: f64,
+
+    /// Y-axis rate-gyro [deg/s]
     gyro_y: f64,
+
+    /// Z-axis rate-gyro [deg/s]
     gyro_z: f64,
     acc_x: f64,
     acc_y: f64,
