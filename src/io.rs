@@ -83,14 +83,9 @@ impl FC {
         match self.fc_listen_socket.recv_from(&mut message_buffer) {
             Ok((num_recv_bytes, recv_addr)) => {
 
-                // We got data!
-                println!("Received {} bytes from port {}", num_recv_bytes, recv_addr.port());
-
                 // First 4 bytes are the sequence number
                 let mut buf = Cursor::new(&message_buffer[..4]);
                 let seqn = buf.read_u32::<BigEndian>().unwrap();
-
-                println!("  SEQN: {}", seqn);
 
                 // Rest of the bytes may be part of a message
                 message.clone_from_slice(&message_buffer[4..]);

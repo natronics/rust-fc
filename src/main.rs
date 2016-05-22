@@ -44,7 +44,6 @@ fn main() {
                         // Only process if correct data:
                         if seqn == (last_adis_message + 1) {
                             let adis = devices::recv_adis(&message);
-                            println!("  accel x: {}", adis.acc_x);
                         }
                         last_adis_message = seqn;
                     },
