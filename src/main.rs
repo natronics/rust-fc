@@ -24,7 +24,7 @@ fn main() {
 "#);
 
     // Set up a Flight Computer IO state
-    let flight_comptuer = io::FC { ..Default::default() };
+    let mut flight_comptuer = io::FC { ..Default::default() };
 
     // Initialize state
     let mut state = State { x: 0.0, v: 0.0 };
@@ -38,9 +38,15 @@ fn main() {
             Some((seqn, recv_port)) => {
                 match recv_port {
                     io::PSAS_ADIS_PORT => {
+
+                        flight_comptuer.log_message(&message, devices::SIZE_OF_ADIS);
+
+                        // Only process if correct data:
+                        if seqn == (last_adis_message + 1) {
+                            let adis = devices::recv_adis(&message);
+                            println!("  accel x: {}", adis.acc_x);
+                        }
                         last_adis_message = seqn;
-                        let adis = devices::recv_adis(&message);
-                        println!("  accel x: {}", adis.acc_x);
                     },
                     _ => { ; }
                 }

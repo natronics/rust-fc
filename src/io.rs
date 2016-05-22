@@ -6,6 +6,8 @@ extern crate byteorder;
 
 use std::net::UdpSocket;
 use std::io::Cursor;
+use std::fs::File;
+use std::io::Write;
 use self::byteorder::{ReadBytesExt, BigEndian};
 
 /// Ports for data
@@ -18,17 +20,49 @@ pub const PSAS_ADIS_PORT: u16 = 35020;
 /// Flight Computer IO.
 pub struct FC {
 
+    /// Socket to listen on for messages
     pub fc_listen_socket: UdpSocket,
+
+    /// File to write data to
+    pub fc_log_file: File,
 }
+
 
 impl Default for FC {
     fn default () -> FC {
+
+        let fc_listen_socket: UdpSocket;
+        let fc_log_file: File;
+
+        // Try and open listen socket
         match UdpSocket::bind(("0.0.0.0", PSAS_LISTEN_UDP_PORT)) {
-            Ok(socket) => { return FC {fc_listen_socket: socket} },
+            Ok(socket) => { fc_listen_socket = socket; },
             Err(e) => { panic!(e) },
         }
+
+        // Try and open log file, loop until we find a name that's not taken
+        let mut newfilenum = 0;
+        loop {
+            let filename = format!("logfile-{:03}", newfilenum);
+            match File::open(filename) {
+                // If this works, keep going
+                Ok(file) => { newfilenum += 1; },
+                // If this fails, make a new file
+                Err(e) => { break; }
+            }
+        }
+
+        // We got here, so open the file
+        match File::create(format!("logfile-{:03}", newfilenum)) {
+            Ok(file) => { fc_log_file = file; },
+            Err(e) => { panic!(e) },
+        }
+
+        // Return initialised struct
+        FC {fc_listen_socket: fc_listen_socket, fc_log_file: fc_log_file}
     }
 }
+
 
 impl FC {
 
@@ -63,6 +97,18 @@ impl FC {
                 Some((seqn, recv_addr.port()))
             },
             Err(e) => { None },  // continue
+        }
+    }
+
+    /// Log a message
+    ///
+    /// # Returns:
+    /// Received message SEQN, received message origin port.
+    pub fn log_message(&mut self, message: &[u8], message_size: u16)  {
+        let try_write = self.fc_log_file.write_all(message);
+        match try_write {
+            Ok(e) => { ; },
+            Err(e) => { ; },
         }
     }
 }

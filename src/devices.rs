@@ -57,7 +57,7 @@ const TEMP2C: f64 = 0.14;
 const C2K: f64 = 299.15;
 
 /// Message size (bytes)
-const SIZE_OF_ADIS: u16 = 28;
+pub const SIZE_OF_ADIS: u16 = 28;
 
 /// Read an ADIS message from raw bytes.
 ///
