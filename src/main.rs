@@ -24,7 +24,7 @@ fn main() {
 "#);
 
     // Set up a Flight Computer IO state
-    let mut flight_comptuer = io::FC { ..Default::default() };
+    let mut flight_comptuer: io::FC = Default::default();
 
     // Initialize state
     let mut state = State { x: 0.0, v: 0.0 };
@@ -43,7 +43,9 @@ fn main() {
 
                         // Only process if correct data:
                         if seqn == (last_adis_message + 1) {
+
                             let adis = devices::recv_adis(&message);
+                            flight_comptuer.telemetry(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS);
                         }
                         last_adis_message = seqn;
                     },
