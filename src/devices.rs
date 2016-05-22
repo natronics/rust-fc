@@ -59,20 +59,19 @@ const C2K: f64 = 299.15;
 /// Message size (bytes)
 const SIZE_OF_ADIS: u16 = 28;
 
-/// # Read an ADIS message from bytes
+/// Read an ADIS message from raw bytes.
 ///
 /// Unrwap a byte array (assuming network endianess) into fields for the ADIS
-/// Data type.
+/// Data type. This will also do the conversion from ADC counts to proper (SI)
+/// Units.
 pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
-
-    println!("    Packet type: ADIS");
-
-    // Convert fields:
 
     // VCC
     let mut buf = Cursor::new(&message_buffer[..2]);
     let vcc: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * VCC2VOLTS;
 
+
+    // Rate Gyroscopes ========================================================
     // Gyro X
     let mut buf = Cursor::new(&message_buffer[2..4]);
     let gyro_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS;
@@ -85,6 +84,8 @@ pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
     let mut buf = Cursor::new(&message_buffer[6..8]);
     let gyro_z: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS;
 
+
+    // Accelerometer ==========================================================
     // Accel X
     let mut buf = Cursor::new(&message_buffer[8..10]);
     let accel_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0;
@@ -97,6 +98,8 @@ pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
     let mut buf = Cursor::new(&message_buffer[12..14]);
     let accel_z: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0;
 
+
+    // Magnetometer ===========================================================
     // Magnetometer X
     let mut buf = Cursor::new(&message_buffer[14..16]);
     let mag_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * MAG2T;
@@ -108,6 +111,7 @@ pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
     // Magnetometer X
     let mut buf = Cursor::new(&message_buffer[18..20]);
     let mag_z: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * MAG2T;
+
 
     // IMU Temperature
     let mut buf = Cursor::new(&message_buffer[20..22]);
@@ -128,11 +132,6 @@ pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
         magn_z: mag_z,
         temp: temp,
     };
-
-    println!("    VCC: {}", vcc);
-    println!("    Gyro X: {}", gyro_x);
-    println!("    Accel X: {}", accel_x);
-    println!("    Temp: {}", temp);
 
     adis
 }
