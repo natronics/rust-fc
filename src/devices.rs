@@ -59,7 +59,7 @@ const C2K: f64 = 299.15;
 /// Message size (bytes)
 pub const SIZE_OF_ADIS: usize = 24;
 
-/// Message name
+/// Message name (ASCII: ADIS)
 pub const ADIS_NAME: [u8;4] = [65, 68, 73, 83];
 
 /// Read an ADIS message from raw bytes.

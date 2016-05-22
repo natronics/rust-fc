@@ -26,6 +26,9 @@ fn main() {
     // Set up a Flight Computer IO state
     let mut flight_comptuer: io::FC = Default::default();
 
+    // Initialize flight logfile with sequence number 0
+    flight_comptuer.log_message(&[0, 0, 0, 0], io::SEQN_NAME, 4).unwrap();
+
     // Initialize state
     let mut state = State { x: 0.0, v: 0.0 };
 

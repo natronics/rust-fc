@@ -19,7 +19,6 @@ const PSAS_LISTEN_UDP_PORT: u16 = 36000;
 /// Port for outgoing telemetry
 const PSAS_TELEMETRY_UDP_PORT: u16 = 35001;
 
-
 /// Expected port for ADIS messages
 pub const PSAS_ADIS_PORT: u16 = 35020;
 
@@ -28,6 +27,9 @@ const P_LIMIT: usize = 1432;
 
 /// Size of PSAS Packet header
 const HEADER_SIZE: usize = 12;
+
+/// Message name (ASCII: SEQN)
+pub const SEQN_NAME: [u8;4] = [83, 69, 81, 78];
 
 
 /// Flight Computer IO.
@@ -185,5 +187,8 @@ impl FC {
         let mut seqn = Vec::with_capacity(4);
         seqn.write_u32::<BigEndian>(self.sequence_number).unwrap();
         self.telemetry_buffer.extend_from_slice(&mut seqn);
+
+        // Keep track of sequence numbers in the flight computer log too
+        self.log_message(&seqn, SEQN_NAME, 4).unwrap();
     }
 }
