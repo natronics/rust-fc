@@ -39,7 +39,7 @@ fn main() {
                 match recv_port {
                     io::PSAS_ADIS_PORT => {
 
-                        flight_comptuer.log_message(&message, devices::SIZE_OF_ADIS);
+                        flight_comptuer.log_message(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS).unwrap();
 
                         // Only process if correct data:
                         if seqn == (last_adis_message + 1) {

@@ -5,10 +5,11 @@
 extern crate byteorder;
 
 use std::net::UdpSocket;
+use std::io::Error;
 use std::io::Cursor;
 use std::fs::File;
 use std::io::Write;
-use self::byteorder::{ReadBytesExt, BigEndian};
+use self::byteorder::{ReadBytesExt, WriteBytesExt, BigEndian};
 
 /// Ports for data
 const PSAS_LISTEN_UDP_PORT: u16 = 36000;
@@ -104,11 +105,18 @@ impl FC {
     ///
     /// # Returns:
     /// Received message SEQN, received message origin port.
-    pub fn log_message(&mut self, message: &[u8], message_size: u16)  {
-        let try_write = self.fc_log_file.write_all(message);
-        match try_write {
-            Ok(e) => { ; },
-            Err(e) => { ; },
-        }
+    pub fn log_message(&mut self, message: &[u8], name: [u8; 4], message_size: usize) -> Result<(), Error> {
+
+        // Header:
+        try!(self.fc_log_file.write(&name));
+        try!(self.fc_log_file.write(&[0,0,0,0,0,0]));
+        let mut size = vec![];
+        size.write_u16::<BigEndian>(message_size as u16).unwrap();
+        try!(self.fc_log_file.write(&size));
+
+        // message:
+        try!(self.fc_log_file.write(&message[0..message_size]));
+
+        Ok(())
     }
 }
