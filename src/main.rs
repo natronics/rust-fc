@@ -31,18 +31,21 @@ fn main() {
 
     let mut last_adis_message = 0;
 
-    let mut message: [u8; 1496] = [0;1496];
-    match flight_comptuer.listen(&mut message) {
-        Some((seqn, recv_port)) => {
-            match recv_port {
-                io::PSAS_ADIS_PORT => {
-                    last_adis_message = seqn;
-                    let adis = devices::recv_adis(&message);
-                    println!("  VCC: {}", adis.vcc);
-                },
-                _ => { ; }
-            }
-        },
-        None => { ; }  // Oh well. Keep listening.
+
+    loop {
+        let mut message: [u8; 1496] = [0;1496];
+        match flight_comptuer.listen(&mut message) {
+            Some((seqn, recv_port)) => {
+                match recv_port {
+                    io::PSAS_ADIS_PORT => {
+                        last_adis_message = seqn;
+                        let adis = devices::recv_adis(&message);
+                        println!("  accel x: {}", adis.acc_x);
+                    },
+                    _ => { ; }
+                }
+            },
+            None => { ; }  // Oh well. Keep listening.
+        }
     }
 }

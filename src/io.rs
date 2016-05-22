@@ -36,7 +36,7 @@ impl FC {
     ///
     /// # Returns:
     /// Received message SEQN, received message origin port.
-    pub fn listen(self, message: &mut [u8]) -> Option<(u32, u16)> {
+    pub fn listen(&self, message: &mut [u8]) -> Option<(u32, u16)> {
 
         // A buffer to put data in from the port.
         // Should at least be the size of MTU (1500 bytes).
