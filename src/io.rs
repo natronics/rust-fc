@@ -1,6 +1,15 @@
-//! # rust-fc/IO
-//!
-//! Help with network and file-writing
+/*! # Input and Output
+
+This module holds a single struct (`FC`) that keeps what would otherwise be global
+state of the running process. All the open file handles and sockets are stored
+here as well as helper functions to properly initialize the program and all the
+necessary packing and work to receive, log, and send any data.
+
+
+In many ways this is the guts of the flight computer.
+
+*/
+
 
 extern crate byteorder;
 
@@ -29,26 +38,26 @@ const P_LIMIT: usize = 1432;
 const HEADER_SIZE: usize = 12;
 
 /// Message name (ASCII: SEQN)
-pub const SEQN_NAME: [u8;4] = [83, 69, 81, 78];
+const SEQN_NAME: [u8;4] = [83, 69, 81, 78];
 
 
 /// Flight Computer IO.
 pub struct FC {
 
     /// Socket to listen on for messages.
-    pub fc_listen_socket: UdpSocket,
+    fc_listen_socket: UdpSocket,
 
     /// Socket to send telemetry.
-    pub telemetry_socket: UdpSocket,
+    telemetry_socket: UdpSocket,
 
     /// File to write data to.
-    pub fc_log_file: File,
+    fc_log_file: File,
 
     /// Current count of telemetry messages sent.
-    pub sequence_number: u32,
+    sequence_number: u32,
 
     /// Buffer of messages to build a telemetry Packet.
-    pub telemetry_buffer: Vec<u8>,
+    telemetry_buffer: Vec<u8>,
 }
 
 
@@ -78,9 +87,9 @@ impl Default for FC {
             let filename = format!("logfile-{:03}", newfilenum);
             match File::open(filename) {
                 // If this works, keep going
-                Ok(file) => { newfilenum += 1; },
+                Ok(_) => { newfilenum += 1; },
                 // If this fails, make a new file
-                Err(e) => { break; }
+                Err(_) => { break; }
             }
         }
 
@@ -94,24 +103,38 @@ impl Default for FC {
         let mut telemetry_buffer = Vec::with_capacity(P_LIMIT);
         telemetry_buffer.extend_from_slice(&[0, 0, 0, 0]);
 
-        // Return initialised struct
-        FC {
+        // Initialise
+        let mut fc = FC {
             fc_listen_socket: fc_listen_socket,
             telemetry_socket: telemetry_socket,
             fc_log_file: fc_log_file,
             sequence_number: 0,
             telemetry_buffer: telemetry_buffer,
-        }
+        };
+
+        // Write log header
+        fc.log_message(&[0, 0, 0, 0], SEQN_NAME, 4).unwrap();
+ 
+        fc
     }
 }
 
 
 impl FC {
 
-    /// Listen on the PSAS_LISTEN socket.
+    /// Listen for messages from the network.
     ///
-    /// # Returns:
-    /// Received message SEQN, received message origin port.
+    /// This makes a blocking `read` call on the `fc_listen_socket`, waiting
+    /// for any message from the outside world. Once received, it will deal
+    /// with the sequence numbers in the header of the data and write the raw
+    /// message to the passed in buffer.
+    ///
+    /// ## Parameters:
+    ///
+    /// - **message**: a buffer to be filled with data from the socket
+    ///
+    /// ##  Returns:
+    /// Received message sequence number and the received message origin port.
     pub fn listen(&self, message: &mut [u8]) -> Option<(u32, u16)> {
 
         // A buffer to put data in from the port.
@@ -122,7 +145,7 @@ impl FC {
         // message_buffer gets filled and we get the number of bytes read
         // along with and address that the message came from
         match self.fc_listen_socket.recv_from(&mut message_buffer) {
-            Ok((num_recv_bytes, recv_addr)) => {
+            Ok((_, recv_addr)) => {
 
                 // First 4 bytes are the sequence number
                 let mut buf = Cursor::new(&message_buffer[..4]);
@@ -133,11 +156,31 @@ impl FC {
 
                 Some((seqn, recv_addr.port()))
             },
-            Err(e) => { None },  // continue
+            Err(_) => { None },  // continue
         }
     }
 
-    /// Log a message
+    /// Log a message to disk.
+    ///
+    /// All data we care about can be encoded as a "message". The original code
+    /// defined messages as packed structs in C. The reasoning was to be as
+    /// space-efficient as reasonably possible given that we are both disk-size
+    /// and bandwidth constrained.
+    ///
+    /// This function takes a message (as an array of bytes) and writes it to
+    /// disk.
+    ///
+    /// ## Parameters:
+    ///
+    /// - **message**: Byte array containing packed message
+    /// - **name**: Byte array of the name for this message
+    /// - **message_size**: How many bytes to copy from the message array
+    ///
+    /// ## Returns:
+    ///
+    /// A Result with any errors. But we hope to never deal with a failure here
+    /// (Greater care was taken in the original flight computer to not crash
+    /// because of disk errors).
     pub fn log_message(&mut self, message: &[u8], name: [u8; 4], message_size: usize) -> Result<(), Error> {
 
         // Header:
@@ -153,6 +196,23 @@ impl FC {
         Ok(())
     }
 
+    /// Send a message to the ground.
+    ///
+    /// All data we care about can be encoded as a "message". The original code
+    /// defined messages as packed structs in C. The reasoning was to be as
+    /// space-efficient as reasonably possible given that we are both disk-size
+    /// and bandwidth constrained.
+    ///
+    /// This function takes a message (as an array of bytes) and queues it to
+    /// be send out over the network once will fill the maximum size of a UDP
+    /// packet.
+    ///
+    /// ## Parameters
+    ///
+    /// - **message**: Byte array containing packed message
+    /// - **name**: Byte array of the name for this message
+    /// - **message_size**: How many bytes to copy from the message array
+    ///
     pub fn telemetry(&mut self, message: &[u8], name: [u8; 4], message_size: usize) {
 
         // If we won't have room in the current packet, flush
@@ -171,11 +231,13 @@ impl FC {
         self.telemetry_buffer.extend_from_slice(&message[0..message_size]);
     }
 
+    /// This will actually send the now full and packed telemetry packet,
+    /// and set us up for the next one.
     fn flush_telemetry(&mut self) {
 
         // Push out the door
         let telemetry_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), PSAS_TELEMETRY_UDP_PORT);
-        self.telemetry_socket.send_to(&self.telemetry_buffer, telemetry_addr);
+        self.telemetry_socket.send_to(&self.telemetry_buffer, telemetry_addr).unwrap();
 
         // Increment SEQN
         self.sequence_number += 1;

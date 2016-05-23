@@ -1,14 +1,15 @@
-//! # rust-fc/devices
-//!
-//! Code for reading raw data from sensors on the rocket. Currently just
-//! implements the packed ADIS16405 IMU
+/*! # Device specifications
+
+This module defines the devices on the flight computer that we wish to receive
+data from. It knows about and can read and write messages for device data.
+*/
 
 extern crate byteorder;
 
 use std::io::Cursor;
 use self::byteorder::{ReadBytesExt, BigEndian};
 
-/// Unwrapped and converted ADIS data.
+/// Unwrapped and converted ADIS IMU data.
 pub struct ADIS {
 
     /// VCC [Volts]. The voltage coming into the IMU
@@ -56,10 +57,10 @@ const MAG2T: f64 = 5e-8;
 const TEMP2C: f64 = 0.14;
 const C2K: f64 = 299.15;
 
-/// Message size (bytes)
+/// ADIS message size (bytes)
 pub const SIZE_OF_ADIS: usize = 24;
 
-/// Message name (ASCII: ADIS)
+/// ADIS ,essage name (ASCII: ADIS)
 pub const ADIS_NAME: [u8;4] = [65, 68, 73, 83];
 
 /// Read an ADIS message from raw bytes.
@@ -67,6 +68,11 @@ pub const ADIS_NAME: [u8;4] = [65, 68, 73, 83];
 /// Unrwap a byte array (assuming network endianess) into fields for the ADIS
 /// Data type. This will also do the conversion from ADC counts to proper (SI)
 /// Units.
+///
+/// ## Parameters
+///
+/// - **message_buffer**: A buffer of bytes at least as long as the ADIS
+/// message (`SIZE_OF_ADIS`).
 pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
 
     // VCC
