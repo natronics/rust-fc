@@ -90,7 +90,7 @@ while True:
 
             # Add realistic noise to simulation
             # the noise seems to be proportional with velocity, with a lower bound
-            noise = vel/125.0
+            noise = vel/200.0
             if noise < 0.1:
                 noise = 0.1
             accel_x += random.gauss(0, noise)

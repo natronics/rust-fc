@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!-- Output data to a socket for Software-In-Loop testing --> 
-<output name="localhost" type="SOCKET" protocol="UDP" port="5123" rate="100">
+<output name="localhost" type="SOCKET" protocol="UDP" port="5123" rate="819.2">
     <property caption="Weight [lbs]">           inertia/weight-lbs              </property>
     <property caption="Force X [lbf]">          forces/fbx-total-lbs            </property>
     <property caption="Force Y [lbf]">          forces/fby-total-lbs            </property>
