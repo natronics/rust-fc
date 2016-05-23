@@ -47,7 +47,7 @@ jsb_console = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 jsb_console.connect(("127.0.0.1", 5124))
 
 # Start simulation, but we've not ignited the engine yet. Should just sit there on the ground (but stream data)
-jsb_console.send("resume\n")
+jsb_console.send(b"resume\n")
 
 
 # While loop for listening for data from JSBSim
@@ -55,10 +55,10 @@ started = False
 seqn = 0
 while True:
     # Press any key at the command line to launch the rocket
-    if not started and sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+    if not started and len(select.select([sys.stdin], [], [], 0)[0]) > 0:
 
         # the JSBSim command to ignite motor
-        jsb_console.send('set fcs/throttle-cmd-norm[0] 1.0\r\n')
+        jsb_console.send(b"set fcs/throttle-cmd-norm[0] 1.0\r\n")
         started = True  # so we only trigger this once
 
     # try reading data from JSBSim
@@ -96,8 +96,16 @@ while True:
 
 
     # ctrl-c to kill the sim. Clean up after ourselves
-    except KeyboardInterrupt, SystemExit:
-        jsb_console.send("quit\n")
+    except KeyboardInterrupt:
+        jsb_console.send(b"quit\n")
+        jsb_console.close()
+        jsb_output.close()
+        fc_imu_sock.close()
+        p.kill()
+        break
+
+    except SystemExit:
+        jsb_console.send(b"quit\n")
         jsb_console.close()
         jsb_output.close()
         fc_imu_sock.close()
