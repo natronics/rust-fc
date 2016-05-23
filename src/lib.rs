@@ -41,15 +41,17 @@ network on the rocket.
 
 A basic diagram looks like this:
 
-                ROCKET                                              GROUND
-    
-     ---------------      Ethernet     +------+     WiFi      ----------------
-    | Sensor/Device | ===============> |  FC  | ~ ~ ~ ~ ~ ~> | Ground station |
-     ---------------                   +------+               ----------------
-                                          || 
-     ---------------------     Ethernet   ||
-    | Actuator (Controls) | <=============++
-     --------------------- 
+```c
+              ROCKET                                              GROUND
+
+   ---------------      Ethernet     +------+     WiFi      ---------------
+  | Sensor/Device | ===============> |  FC  | ~ ~ ~ ~ ~ ~> | Ground station |
+   ---------------                   +------+               ----------------
+                                        ||
+   ---------------------     Ethernet   ||
+  | Actuator (Controls) | <=============++
+   ---------------------
+```
 
 The main purpose of the Flight Computer then is to
 
