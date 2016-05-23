@@ -2,7 +2,9 @@
 
 <!-- Output data to a socket for Software-In-Loop testing --> 
 <output name="localhost" type="SOCKET" protocol="UDP" port="5123" rate="100">
-    <property caption="Accel U [ft/s^2]">     accelerations/udot-ft_sec2      </property>
-    <property caption="Accel V [ft/s^2]">     accelerations/vdot-ft_sec2      </property>
-    <property caption="Accel W [ft/s^2]">     accelerations/wdot-ft_sec2      </property>
+    <property caption="Weight [lbs]">           inertia/weight-lbs              </property>
+    <property caption="Force X [lbf]">          forces/fbx-total-lbs            </property>
+    <property caption="Force Y [lbf]">          forces/fby-total-lbs            </property>
+    <property caption="Force Z [lbf]">          forces/fbz-total-lbs            </property>
+    <property caption="ECEF Velocity [fps]">    velocities/ned-velocity-mag-fps </property>
 </output>

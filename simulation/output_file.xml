@@ -7,7 +7,7 @@
   <property caption="Latitude [deg]">       position/lat-gc-deg             </property>
   <property caption="Longitdue [deg]">      position/long-gc-deg            </property>
   <property caption="Thrust [lbf]">         forces/fbx-prop-lbs             </property>
-  <property caption="Total Mass [lbs]">     inertia/weight-lbs              </property>
+  <property caption="Total Weight [lbs]">   inertia/weight-lbs              </property>
   <property caption="Pitch [deg]">          attitude/theta-deg              </property>
   <property caption="ECEF Velocity [fps]">  velocities/ned-velocity-mag-fps </property>
   <property caption="ECI Velocity [fps]">   velocities/eci-velocity-mag-fps </property>
@@ -19,4 +19,5 @@
   <property caption="Downrange [m]">        position/distance-from-start-mag-mt </property>
   <property caption="Angle of Attack [deg]">aero/alpha-deg                  </property>
   <property caption="Roll Rate [rad/s]">    velocities/p-rad_sec            </property>
+  <property caption="Forces X [lbf]">       forces/fbx-total-lbs            </property>
 </output>

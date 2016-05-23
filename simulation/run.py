@@ -5,13 +5,18 @@ import time
 import sys
 import select
 from psas_packet import io, messages
+import random
 
 # data type
 ADIS = messages.MESSAGES['ADIS']
 
 # convert from stupid imperial units
 FPS2M = 0.3048
+LBF2N = 4.44822
+LBS2KG = 0.453592
 
+# Seed for deterministic random behavior
+random.seed(0xBADA55)
 
 # output from JSBSim goes to this socket (port specified in output.xml)
 jsb_output = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -49,7 +54,6 @@ jsb_console.connect(("127.0.0.1", 5124))
 # Start simulation, but we've not ignited the engine yet. Should just sit there on the ground (but stream data)
 jsb_console.send(b"resume\n")
 
-
 # While loop for listening for data from JSBSim
 started = False
 seqn = 0
@@ -64,15 +68,34 @@ while True:
     # try reading data from JSBSim
     try:
         buf = jsb_output.recv(1500)
-        if len(buf) > 1:
-            data = buf.split(',')
-            time  = float(data[0].strip())
-            acc_U = float(data[1].strip())
-            acc_V = float(data[2].strip())
-            acc_W = float(data[3].strip())
 
-            # uncomment to print data to console
-            #print time, acc_U, acc_V, acc_W
+        if len(buf) > 1:
+            data = buf.split(b',')
+            time    = float(data[0].strip())
+            weight  = float(data[1].strip()) * LBS2KG  # kg
+            force_x = float(data[2].strip()) * LBF2N   # N
+            force_y = float(data[3].strip()) * LBF2N   # N
+            force_z = float(data[4].strip()) * LBF2N   # N
+            vel     = float(data[5].strip()) * FPS2M   # m/s
+
+            # The IMU measured acceleration is the forces / mass
+            accel_x = force_x / weight
+            accel_y = force_y / weight
+            accel_z = force_z / weight
+
+            # JSBSim will report 0 force/accel while hold-down is on
+            # so we simulation sitting on the pad (1 G measured accel up)
+            if not started:
+                accel_x = 9.8
+
+            # Add realistic noise to simulation
+            # the noise seems to be proportional with velocity, with a lower bound
+            noise = vel/125.0
+            if noise < 0.1:
+                noise = 0.1
+            accel_x += random.gauss(0, noise)
+            accel_y += random.gauss(0, noise)
+            accel_z += random.gauss(0, noise)
 
             # Pack ADIS message
             data = {
@@ -80,9 +103,9 @@ while True:
                 'Gyro_X': 0.0,
                 'Gyro_Y': 0,
                 'Gyro_Z': 1,
-                'Acc_X': acc_U * FPS2M,
-                'Acc_Y': acc_V * FPS2M,
-                'Acc_Z': acc_W * FPS2M,
+                'Acc_X': accel_x,
+                'Acc_Y': accel_y,
+                'Acc_Z': accel_z,
                 'Magn_X': 0,
                 'Magn_Y': 0,
                 'Magn_Z': 0,
