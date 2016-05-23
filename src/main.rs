@@ -1,5 +1,6 @@
 mod devices;
 mod io;
+mod state;
 
 fn main() {
     println!(r#"
@@ -20,6 +21,9 @@ fn main() {
     // Set up a Flight Computer IO state
     let mut flight_comptuer: io::FC = Default::default();
 
+    // New state vector
+    let mut state: state::State = Default::default();
+
     let mut last_adis_message = 0;
 
     loop {
@@ -35,6 +39,7 @@ fn main() {
                         if seqn == (last_adis_message + 1) {
 
                             let adis = devices::recv_adis(&message);
+                            state.update_imu(adis);
                             flight_comptuer.telemetry(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS);
                         }
                         last_adis_message = seqn;
