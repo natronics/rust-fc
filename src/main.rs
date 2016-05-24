@@ -39,7 +39,7 @@ fn main() {
                         if seqn == (last_adis_message + 1) {
 
                             let adis = devices::recv_adis(&message);
-                            state.update_imu(adis);
+                            state.update_imu(recv_time, adis);
                             flight_comptuer.telemetry(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS);
                         }
                         last_adis_message = seqn;
