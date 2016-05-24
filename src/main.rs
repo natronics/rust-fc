@@ -29,11 +29,11 @@ fn main() {
     loop {
         let mut message: [u8; 1496] = [0;1496];
         match flight_comptuer.listen(&mut message) {
-            Some((seqn, recv_port)) => {
+            Some((seqn, recv_port, recv_time)) => {
                 match recv_port {
                     io::PSAS_ADIS_PORT => {
 
-                        flight_comptuer.log_message(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS).unwrap();
+                        flight_comptuer.log_message(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS).unwrap();
 
                         // Only process if correct data:
                         if seqn == (last_adis_message + 1) {

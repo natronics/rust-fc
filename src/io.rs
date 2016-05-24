@@ -20,6 +20,9 @@ use std::io::Error;
 use std::io::Cursor;
 use std::fs::File;
 use std::io::Write;
+use std::time;
+
+
 use self::byteorder::{ReadBytesExt, WriteBytesExt, BigEndian};
 
 /// Ports for data
@@ -44,6 +47,9 @@ const SEQN_NAME: [u8;4] = [83, 69, 81, 78];
 /// Flight Computer IO.
 pub struct FC {
 
+    /// Instant we started
+    boot_time: time::Instant,
+
     /// Socket to listen on for messages.
     fc_listen_socket: UdpSocket,
 
@@ -63,6 +69,9 @@ pub struct FC {
 
 impl Default for FC {
     fn default () -> FC {
+
+        // Boot time
+        let boot_time = time::Instant::now();
 
         let fc_listen_socket: UdpSocket;
         let telemetry_socket: UdpSocket;
@@ -105,6 +114,7 @@ impl Default for FC {
 
         // Initialise
         let mut fc = FC {
+            boot_time: boot_time,
             fc_listen_socket: fc_listen_socket,
             telemetry_socket: telemetry_socket,
             fc_log_file: fc_log_file,
@@ -113,7 +123,7 @@ impl Default for FC {
         };
 
         // Write log header
-        fc.log_message(&[0, 0, 0, 0], SEQN_NAME, 4).unwrap();
+        fc.log_message(&[0, 0, 0, 0], SEQN_NAME, time::Duration::new(0, 0), 4).unwrap();
  
         fc
     }
@@ -135,7 +145,7 @@ impl FC {
     ///
     /// ##  Returns:
     /// Received message sequence number and the received message origin port.
-    pub fn listen(&self, message: &mut [u8]) -> Option<(u32, u16)> {
+    pub fn listen(&self, message: &mut [u8]) -> Option<(u32, u16, time::Duration)> {
 
         // A buffer to put data in from the port.
         // Should at least be the size of MTU (1500 bytes).
@@ -147,6 +157,8 @@ impl FC {
         match self.fc_listen_socket.recv_from(&mut message_buffer) {
             Ok((_, recv_addr)) => {
 
+                let recv_time = time::Instant::now().duration_since(self.boot_time);
+
                 // First 4 bytes are the sequence number
                 let mut buf = Cursor::new(&message_buffer[..4]);
                 let seqn = buf.read_u32::<BigEndian>().unwrap();
@@ -154,7 +166,7 @@ impl FC {
                 // Rest of the bytes may be part of a message
                 message.clone_from_slice(&message_buffer[4..]);
 
-                Some((seqn, recv_addr.port()))
+                Some((seqn, recv_addr.port(), recv_time))
             },
             Err(_) => { None },  // continue
         }
@@ -181,20 +193,41 @@ impl FC {
     /// A Result with any errors. But we hope to never deal with a failure here
     /// (Greater care was taken in the original flight computer to not crash
     /// because of disk errors).
-    pub fn log_message(&mut self, message: &[u8], name: [u8; 4], message_size: usize) -> Result<(), Error> {
+    pub fn log_message(&mut self, message: &[u8], name: [u8; 4], time: time::Duration, message_size: usize) -> Result<(), Error> {
 
         // Header:
-        try!(self.fc_log_file.write(&name));
-        try!(self.fc_log_file.write(&[0,0,0,0,0,0]));
-        let mut size = Vec::with_capacity(2);
-        size.write_u16::<BigEndian>(message_size as u16).unwrap();
-        try!(self.fc_log_file.write(&size));
+        let header = self.pack_header(name, time, message_size);
+        try!(self.fc_log_file.write(&header));
 
         // message:
         try!(self.fc_log_file.write(&message[0..message_size]));
 
         Ok(())
     }
+
+    fn pack_header(&self, name: [u8; 4], time: time::Duration, message_size: usize) -> Vec<u8> {
+
+        // Put stuff in here
+        let mut header: Vec<u8> = Vec::with_capacity(12);
+
+        // ID (four character code goes in unmodified
+        header.extend_from_slice(&name);
+
+        // Timestamp, 6 bytes nanoseconds from boot
+        let nanos: u64 = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
+        //let nanos: u64 = time.as_secs();
+        let mut t = Vec::with_capacity(8);
+        t.write_u64::<BigEndian>(nanos).unwrap();
+        header.extend_from_slice(&t[2..8]);
+
+        // Size of message
+        let mut size = Vec::with_capacity(2);
+        size.write_u16::<BigEndian>(message_size as u16).unwrap();
+        header.extend_from_slice(&size);
+
+        header
+    }
+
 
     /// Send a message to the ground.
     ///
@@ -237,6 +270,10 @@ impl FC {
 
         // Push out the door
         let telemetry_addr: SocketAddrV4 = SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), PSAS_TELEMETRY_UDP_PORT);
+
+        // When did we send this packet
+        let send_time = time::Instant::now().duration_since(self.boot_time);
+
         self.telemetry_socket.send_to(&self.telemetry_buffer, telemetry_addr).unwrap();
 
         // Increment SEQN
@@ -251,6 +288,6 @@ impl FC {
         self.telemetry_buffer.extend_from_slice(&mut seqn);
 
         // Keep track of sequence numbers in the flight computer log too
-        self.log_message(&seqn, SEQN_NAME, 4).unwrap();
+        self.log_message(&seqn, SEQN_NAME, send_time, 4).unwrap();
     }
 }
