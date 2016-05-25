@@ -5,7 +5,7 @@ Tracking state of the rocket.
 extern crate byteorder;
 
 use std::time;
-use self::byteorder::{ReadBytesExt, WriteBytesExt, BigEndian};
+use self::byteorder::{WriteBytesExt, BigEndian};
 use devices;
 
 /// Current State Vector.
@@ -53,7 +53,7 @@ impl State {
         // Copy of last state to use in integration
         let t_last = self.time;
         let a_last = self.acc_up;
-        //let v_last = self.vel_up;
+        let v_last = self.vel_up;
 
         // Copy new data
         self.time = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
@@ -64,7 +64,7 @@ impl State {
         // Compute and update integrals
         let t_seconds = (self.time - t_last) as f64 / 1e9;
         self.vel_up += (t_seconds * (self.acc_up + a_last)) / 2.0;
-
+        self.altitude += (t_seconds * (self.vel_up + v_last)) / 2.0;
     }
 
     /// Return a copy of this struct as a byte array.
@@ -84,6 +84,11 @@ impl State {
         // Vel_up
         let mut v = Vec::with_capacity(8);
         v.write_f64::<BigEndian>(self.vel_up).unwrap();
+        message.extend_from_slice(&v);
+
+        // Altitude
+        let mut v = Vec::with_capacity(8);
+        v.write_f64::<BigEndian>(self.altitude).unwrap();
         message.extend_from_slice(&v);
 
         // Pack each field from this struct in the message
