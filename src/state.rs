@@ -2,7 +2,10 @@
 
 Tracking state of the rocket.
 */
+extern crate byteorder;
+
 use std::time;
+use self::byteorder::{ReadBytesExt, WriteBytesExt, BigEndian};
 use devices;
 
 /// Current State Vector.
@@ -54,11 +57,36 @@ impl State {
 
         // Copy new data
         self.time = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
-        self.acc_up = imu.acc_x;
+
+        // Subtract gravity!!!
+        self.acc_up = imu.acc_x - 9.8;
 
         // Compute and update integrals
         let t_seconds = (self.time - t_last) as f64 / 1e9;
         self.vel_up += (t_seconds * (self.acc_up + a_last)) / 2.0;
 
+    }
+
+    /// Return a copy of this struct as a byte array.
+    pub fn as_message(&mut self) -> Vec<u8> {
+        let mut message = Vec::with_capacity(50);
+
+        // Time
+        let mut t = Vec::with_capacity(8);
+        t.write_u64::<BigEndian>(self.time).unwrap();
+        message.extend_from_slice(&t);
+
+        // Acc_up
+        let mut v = Vec::with_capacity(8);
+        v.write_f64::<BigEndian>(self.acc_up).unwrap();
+        message.extend_from_slice(&v);
+
+        // Vel_up
+        let mut v = Vec::with_capacity(8);
+        v.write_f64::<BigEndian>(self.vel_up).unwrap();
+        message.extend_from_slice(&v);
+
+        // Pack each field from this struct in the message
+        message
     }
 }      

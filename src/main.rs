@@ -40,6 +40,8 @@ fn main() {
 
                             let adis = devices::recv_adis(&message);
                             state.update_imu(recv_time, adis);
+                            let state_message = state.as_message();
+                            flight_comptuer.log_message(&state_message, [83,84,65,84], recv_time, state_message.len()).unwrap();
                             flight_comptuer.telemetry(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS);
                         }
                         last_adis_message = seqn;
