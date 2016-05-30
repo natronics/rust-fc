@@ -66,6 +66,34 @@ pub struct FC {
 }
 
 
+// Reusable code for packing header into bytes
+fn pack_header(name: [u8; 4], time: time::Duration, message_size: usize) -> [u8; HEADER_SIZE] {
+
+    let mut buffer = [0u8; HEADER_SIZE];
+    {
+        let mut header = Cursor::<&mut [u8]>::new(&mut buffer);
+
+        // Fields:
+        // ID (Four character code)
+        header.write(&name);
+
+        // Timestamp, 6 bytes nanoseconds from boot
+        let nanos: u64 = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
+        let mut time_buffer = [0u8; 8];
+        {
+            let mut t = Cursor::<&mut [u8]>::new(&mut time_buffer);
+            t.write_u64::<BigEndian>(nanos).unwrap();
+        }
+        // Truncate to 6 least significant bytes
+        header.write(&time_buffer[2..8]);
+
+        // Size:
+        header.write_u16::<BigEndian>(message_size as u16).unwrap();
+    }
+    buffer
+}
+
+
 impl Default for FC {
     fn default () -> FC {
 
@@ -194,7 +222,7 @@ impl FC {
     pub fn log_message(&mut self, message: &[u8], name: [u8; 4], time: time::Duration, message_size: usize) -> Result<(), Error> {
 
         // Header:
-        let header = self.pack_header(name, time, message_size);
+        let header = pack_header(name, time, message_size);
         try!(self.fc_log_file.write(&header));
 
         // message:
@@ -203,31 +231,6 @@ impl FC {
         Ok(())
     }
 
-    fn pack_header(&self, name: [u8; 4], time: time::Duration, message_size: usize) -> [u8; HEADER_SIZE] {
-
-        let mut buffer = [0u8; HEADER_SIZE];
-        {
-            let mut header = Cursor::<&mut [u8]>::new(&mut buffer);
-
-            // Fields:
-            // ID (Four character code)
-            header.write(&name);
-
-            // Timestamp, 6 bytes nanoseconds from boot
-            let nanos: u64 = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
-            let mut time_buffer = [0u8; 8];
-            {
-                let mut t = Cursor::<&mut [u8]>::new(&mut time_buffer);
-                t.write_u64::<BigEndian>(nanos).unwrap();
-            }
-            // Truncate to 6 least significant bytes
-            header.write(&time_buffer[2..8]);
-
-            // Size:
-            header.write_u16::<BigEndian>(message_size as u16).unwrap();
-        }
-        buffer
-    }
 
 
     /// Send a message to the ground.
@@ -256,7 +259,7 @@ impl FC {
         }
 
         // Header:
-        let header = self.pack_header(name, time, message_size);
+        let header = pack_header(name, time, message_size);
         self.telemetry_buffer.extend_from_slice(&header);
 
         // Message:
