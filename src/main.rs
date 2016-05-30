@@ -27,21 +27,29 @@ fn main() {
     let mut last_adis_message = 0;
 
     loop {
-        let mut message: [u8; 1496] = [0;1496];
-        match flight_comptuer.listen(&mut message) {
-            Some((seqn, recv_port, recv_time)) => {
+
+        // What the message is from matches on Port
+        match flight_comptuer.listen() {
+            Some((seqn, recv_port, recv_time, message)) => {
                 match recv_port {
+
+                    // Message from ADIS IMU
+                    // When we get new IMU data we log it. If it's a new message then we
+                    // update the state and send new data over the telemetry channel
                     io::PSAS_ADIS_PORT => {
 
                         flight_comptuer.log_message(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS).unwrap();
 
-                        // Only process if correct data:
                         if seqn == (last_adis_message + 1) {
 
+                            // unpack message into values
                             let adis = devices::recv_adis(&message);
+
+                            // update state
                             state.update_imu(recv_time, adis);
-                            let state_message = state.as_message();
-                            flight_comptuer.log_message(&state_message, state::STATE_NAME, recv_time, state::SIZE_OF_STATE).unwrap();
+
+                            // log state, send ADIS over telemetry
+                            flight_comptuer.log_message(&state.as_message(), state::STATE_NAME, recv_time, state::SIZE_OF_STATE).unwrap();
                             flight_comptuer.telemetry(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS);
                         }
                         last_adis_message = seqn;

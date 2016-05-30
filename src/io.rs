@@ -43,7 +43,6 @@ const HEADER_SIZE: usize = 12;
 /// Message name (ASCII: SEQN)
 const SEQN_NAME: [u8;4] = [83, 69, 81, 78];
 
-
 /// Flight Computer IO.
 pub struct FC {
 
@@ -139,17 +138,13 @@ impl FC {
     /// with the sequence numbers in the header of the data and write the raw
     /// message to the passed in buffer.
     ///
-    /// ## Parameters:
-    ///
-    /// - **message**: a buffer to be filled with data from the socket
-    ///
     /// ##  Returns:
     /// Received message sequence number and the received message origin port.
-    pub fn listen(&self, message: &mut [u8]) -> Option<(u32, u16, time::Duration)> {
+    pub fn listen(&self) -> Option<(u32, u16, time::Duration, [u8; P_LIMIT - 4])> {
 
         // A buffer to put data in from the port.
-        // Should at least be the size of MTU (1500 bytes).
-        let mut message_buffer: [u8; 1500] = [0; 1500];
+        // Should at least be the size of telemetry message.
+        let mut message_buffer = [0u8; P_LIMIT];
 
         // Read from the socket (blocking!)
         // message_buffer gets filled and we get the number of bytes read
@@ -157,6 +152,7 @@ impl FC {
         match self.fc_listen_socket.recv_from(&mut message_buffer) {
             Ok((_, recv_addr)) => {
 
+                // Get time for incoming data
                 let recv_time = time::Instant::now().duration_since(self.boot_time);
 
                 // First 4 bytes are the sequence number
@@ -164,9 +160,10 @@ impl FC {
                 let seqn = buf.read_u32::<BigEndian>().unwrap();
 
                 // Rest of the bytes may be part of a message
-                message.clone_from_slice(&message_buffer[4..]);
+                let mut message = [0u8; P_LIMIT - 4];
+                message.clone_from_slice(&message_buffer[4..P_LIMIT]);
 
-                Some((seqn, recv_addr.port(), recv_time))
+                Some((seqn, recv_addr.port(), recv_time, message))
             },
             Err(_) => { None },  // continue
         }
@@ -205,27 +202,30 @@ impl FC {
         Ok(())
     }
 
-    fn pack_header(&self, name: [u8; 4], time: time::Duration, message_size: usize) -> Vec<u8> {
+    fn pack_header(&self, name: [u8; 4], time: time::Duration, message_size: usize) -> [u8; HEADER_SIZE] {
 
-        // Put stuff in here
-        let mut header: Vec<u8> = Vec::with_capacity(12);
+        let mut buffer = [0u8; HEADER_SIZE];
+        {
+            let mut header = Cursor::<&mut [u8]>::new(&mut buffer);
 
-        // ID (four character code goes in unmodified
-        header.extend_from_slice(&name);
+            // Fields:
+            // ID (Four character code)
+            header.write(&name);
 
-        // Timestamp, 6 bytes nanoseconds from boot
-        let nanos: u64 = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
-        //let nanos: u64 = time.as_secs();
-        let mut t = Vec::with_capacity(8);
-        t.write_u64::<BigEndian>(nanos).unwrap();
-        header.extend_from_slice(&t[2..8]);
+            // Timestamp, 6 bytes nanoseconds from boot
+            let nanos: u64 = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
+            let mut time_buffer = [0u8; 8];
+            {
+                let mut t = Cursor::<&mut [u8]>::new(&mut time_buffer);
+                t.write_u64::<BigEndian>(nanos).unwrap();
+            }
+            // Truncate to 6 least significant bytes
+            header.write(&time_buffer[2..8]);
 
-        // Size of message
-        let mut size = Vec::with_capacity(2);
-        size.write_u16::<BigEndian>(message_size as u16).unwrap();
-        header.extend_from_slice(&size);
-
-        header
+            // Size:
+            header.write_u16::<BigEndian>(message_size as u16).unwrap();
+        }
+        buffer
     }
 
 
