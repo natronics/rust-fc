@@ -50,7 +50,7 @@ fn main() {
 
                             // log state, send ADIS over telemetry
                             flight_comptuer.log_message(&state.as_message(), state::STATE_NAME, recv_time, state::SIZE_OF_STATE).unwrap();
-                            flight_comptuer.telemetry(&message, devices::ADIS_NAME, devices::SIZE_OF_ADIS);
+                            flight_comptuer.telemetry(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS);
                         }
                         last_adis_message = seqn;
                     },

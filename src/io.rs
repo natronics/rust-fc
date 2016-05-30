@@ -183,6 +183,7 @@ impl FC {
     ///
     /// - **message**: Byte array containing packed message
     /// - **name**: Byte array of the name for this message
+    /// - **time**: Time of message
     /// - **message_size**: How many bytes to copy from the message array
     ///
     /// ## Returns:
@@ -244,9 +245,10 @@ impl FC {
     ///
     /// - **message**: Byte array containing packed message
     /// - **name**: Byte array of the name for this message
+    /// - **time**: Time of message
     /// - **message_size**: How many bytes to copy from the message array
     ///
-    pub fn telemetry(&mut self, message: &[u8], name: [u8; 4], message_size: usize) {
+    pub fn telemetry(&mut self, message: &[u8], name: [u8; 4], time: time::Duration, message_size: usize) {
 
         // If we won't have room in the current packet, flush
         if (self.telemetry_buffer.len() + HEADER_SIZE + message_size) > P_LIMIT {
@@ -254,11 +256,8 @@ impl FC {
         }
 
         // Header:
-        self.telemetry_buffer.extend_from_slice(&name);
-        self.telemetry_buffer.extend_from_slice(&[0,0,0,0,0,0]);
-        let mut size = Vec::with_capacity(2);
-        size.write_u16::<BigEndian>(message_size as u16).unwrap();
-        self.telemetry_buffer.append(&mut size);
+        let header = self.pack_header(name, time, message_size);
+        self.telemetry_buffer.extend_from_slice(&header);
 
         // Message:
         self.telemetry_buffer.extend_from_slice(&message[0..message_size]);
