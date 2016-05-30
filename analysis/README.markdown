@@ -47,13 +47,15 @@ The flight comptuer only knows the Inertial state (acceleration). It keeps track
 
 
 
-![](results_files/results_8_0.png)
-
-
-
 
 
 ![](results_files/results_9_0.png)
+
+
+
+
+
+![](results_files/results_10_0.png)
 
 
 
