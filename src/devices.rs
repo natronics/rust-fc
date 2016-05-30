@@ -60,7 +60,7 @@ const C2K: f64 = 299.15;
 /// ADIS message size (bytes)
 pub const SIZE_OF_ADIS: usize = 24;
 
-/// ADIS ,essage name (ASCII: ADIS)
+/// ADIS message name (ASCII: ADIS)
 pub const ADIS_NAME: [u8;4] = [65, 68, 73, 83];
 
 /// Read an ADIS message from raw bytes.
@@ -75,72 +75,22 @@ pub const ADIS_NAME: [u8;4] = [65, 68, 73, 83];
 /// message (`SIZE_OF_ADIS`).
 pub fn recv_adis(message_buffer: &[u8]) -> ADIS {
 
-    // VCC
-    let mut buf = Cursor::new(&message_buffer[..2]);
-    let vcc: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * VCC2VOLTS;
+    let mut message = Cursor::new(message_buffer);
 
-
-    // Rate Gyroscopes ========================================================
-    // Gyro X
-    let mut buf = Cursor::new(&message_buffer[2..4]);
-    let gyro_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS;
-
-    // Gyro Y
-    let mut buf = Cursor::new(&message_buffer[4..6]);
-    let gyro_y: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS;
-
-    // Gyro Z
-    let mut buf = Cursor::new(&message_buffer[6..8]);
-    let gyro_z: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS;
-
-
-    // Accelerometer ==========================================================
-    // Accel X
-    let mut buf = Cursor::new(&message_buffer[8..10]);
-    let accel_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0;
-
-    // Accel Y
-    let mut buf = Cursor::new(&message_buffer[10..12]);
-    let accel_y: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0;
-
-    // Accel Z
-    let mut buf = Cursor::new(&message_buffer[12..14]);
-    let accel_z: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0;
-
-
-    // Magnetometer ===========================================================
-    // Magnetometer X
-    let mut buf = Cursor::new(&message_buffer[14..16]);
-    let mag_x: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * MAG2T;
-
-    // Magnetometer Y
-    let mut buf = Cursor::new(&message_buffer[16..18]);
-    let mag_y: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * MAG2T;
-
-    // Magnetometer X
-    let mut buf = Cursor::new(&message_buffer[18..20]);
-    let mag_z: f64 = buf.read_i16::<BigEndian>().unwrap() as f64 * MAG2T;
-
-
-    // IMU Temperature
-    let mut buf = Cursor::new(&message_buffer[20..22]);
-    let temp: f64 = (buf.read_i16::<BigEndian>().unwrap() as f64 * TEMP2C) + C2K;
-
-    // Ignore Aux ADC.
-
-    let adis = ADIS {
-        vcc: vcc,
-        gyro_x: gyro_x,
-        gyro_y: gyro_y,
-        gyro_z: gyro_z,
-        acc_x: accel_x,
-        acc_y: accel_y,
-        acc_z: accel_z,
-        magn_x: mag_x,
-        magn_y: mag_y,
-        magn_z: mag_z,
-        temp: temp,
-    };
-
-    adis
+    // Each read from the cursor will get 2 bytes out of the message.
+    // Read each field and convert to appropriate units, then return populated
+    // struct.
+    ADIS {
+        vcc:    message.read_i16::<BigEndian>().unwrap() as f64 * VCC2VOLTS,
+        gyro_x: message.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS,
+        gyro_y: message.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS,
+        gyro_z: message.read_i16::<BigEndian>().unwrap() as f64 * GYRO2DEGS,
+        acc_x:  message.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0,
+        acc_y:  message.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0,
+        acc_z:  message.read_i16::<BigEndian>().unwrap() as f64 * ACC2G * G_0,
+        magn_x: message.read_i16::<BigEndian>().unwrap() as f64 * MAG2T,
+        magn_y: message.read_i16::<BigEndian>().unwrap() as f64 * MAG2T,
+        magn_z: message.read_i16::<BigEndian>().unwrap() as f64 * MAG2T,
+        temp:  (message.read_i16::<BigEndian>().unwrap() as f64 * TEMP2C) + C2K,
+    }
 }
