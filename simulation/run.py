@@ -115,6 +115,10 @@ while True:
 
             # send to FC and update seqn
             fc_imu.send_data(ADIS, seqn, data)
+
+            # Fake some missing packets
+            if seqn == 25:
+                seqn = seqn + 3
             seqn = seqn + 1
 
 

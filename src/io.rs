@@ -43,6 +43,13 @@ const HEADER_SIZE: usize = 12;
 /// Message name (ASCII: SEQN)
 const SEQN_NAME: [u8;4] = [83, 69, 81, 78];
 
+/// Sequence Error message size (bytes)
+pub const SIZE_OF_SEQE: usize = 10;
+
+/// Sequence Error message name (ASCII: SEQE)
+pub const SEQE_NAME: [u8;4] = [83, 69, 81, 69];
+
+
 /// Flight Computer IO.
 pub struct FC {
 
@@ -291,5 +298,42 @@ impl FC {
 
         // Keep track of sequence numbers in the flight computer log too
         self.log_message(&seqn, SEQN_NAME, send_time, 4).unwrap();
+    }
+}
+
+/// A sequence error message.
+///
+/// When we miss a packet or get an out of order packet we should log that
+/// for future analysis. This stores a error and builds a log-able message.
+pub struct SequenceError {
+
+    /// Which port the packet error is from
+    pub port: u16,
+
+    /// Expected packet sequence number
+    pub expected: u32,
+
+    /// Actual received packet sequence number
+    pub received: u32,
+}
+
+
+impl SequenceError {
+
+    /// Return a copy of this struct as a byte array.
+    ///
+    /// The PSAS file and message type is always a byte array with big-endian
+    /// representation of fields in a struct.
+    pub fn as_message(&mut self) -> [u8; SIZE_OF_SEQE] {
+        let mut buffer = [0u8; SIZE_OF_SEQE];
+        {
+            let mut message = Cursor::<&mut [u8]>::new(&mut buffer);
+
+            // Struct Fields:
+            message.write_u16::<BigEndian>(self.port).unwrap();
+            message.write_u32::<BigEndian>(self.expected).unwrap();
+            message.write_u32::<BigEndian>(self.received).unwrap();
+        }
+        buffer
     }
 }

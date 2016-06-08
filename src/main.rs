@@ -25,7 +25,7 @@ fn main() {
     let mut state: state::State = Default::default();
 
     // Track the sequence number for an ADIS message
-    let mut last_adis_message = 0;
+    let mut adis_seqn_expected = 0;
 
 
     // The Flight Computer. Loop forever.
@@ -45,7 +45,29 @@ fn main() {
                     // We expect monotonically increasing sequence numbers.
                     // Anything received out of order is ignored. Real time
                     // systems can't do anything with stale data!
-                    if seqn >= (last_adis_message + 1) {
+                    if seqn < adis_seqn_expected {
+
+                        // Out of order packet! Log it
+                        let mut seqerror = io::SequenceError {
+                            port: recv_port,
+                            expected: adis_seqn_expected,
+                            received: seqn,
+                        };
+                        flight_computer.log_message(&seqerror.as_message(), io::SEQE_NAME, recv_time, io::SIZE_OF_SEQE).unwrap();
+                    }
+                    if seqn > adis_seqn_expected {
+                        // Out of order packet! Log it
+                        let mut seqerror = io::SequenceError {
+                            port: recv_port,
+                            expected: adis_seqn_expected,
+                            received: seqn,
+                        };
+                        flight_computer.log_message(&seqerror.as_message(), io::SEQE_NAME, recv_time, io::SIZE_OF_SEQE).unwrap();
+
+                        // Update sequence number counter
+                        adis_seqn_expected = seqn + 1;
+                    }
+                    if seqn == adis_seqn_expected {
 
                         // Unpack binary message into proper values with units
                         let adis = devices::recv_adis(&message);
@@ -59,10 +81,10 @@ fn main() {
                         // Log ADIS message and send it out over telemetry
                         flight_computer.log_message(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS).unwrap();
                         flight_computer.telemetry(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS);
-                    }
 
-                    // Update sequence number counter
-                    last_adis_message = seqn;
+                        // Update sequence number counter
+                        adis_seqn_expected = seqn + 1;
+                    }
                 },
 
 
