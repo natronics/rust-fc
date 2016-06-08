@@ -51,6 +51,22 @@ pub const SEQE_NAME: [u8;4] = [83, 69, 81, 69];
 
 
 /// Flight Computer IO.
+///
+/// Internally holds state for this implementation of the flight computer.
+/// This includes time (nanosecond counter from startup), a socket for
+/// listening for incoming data, a socket for sending data over the telemetry
+/// link, a log file, a running count of telemetry messages sent and a buffer
+/// for partly built telemetry messages.
+///
+/// To initialize use the Default trait:
+///
+/// # Example
+///
+/// ```no_run
+/// use rust_fc::io;
+///
+/// let mut flight_computer: io::FC = Default::default();
+/// ```
 pub struct FC {
 
     /// Instant we started
@@ -173,8 +189,27 @@ impl FC {
     /// with the sequence numbers in the header of the data and write the raw
     /// message to the passed in buffer.
     ///
-    /// ##  Returns:
-    /// Received message sequence number and the received message origin port.
+    /// #  Returns:
+    ///
+    /// An Option containing a tuple of data from the socket. The tuple
+    /// contains:
+    ///
+    /// - **Sequence Number**: Sequence number from the header of the data packet
+    /// - **Port**: Which port the data was sent _from_
+    /// - **Time**: The time that the message was received
+    /// - **Message**: A message buffer that has raw bytes off the wire
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use rust_fc::io;
+    ///
+    /// let mut flight_computer: io::FC = Default::default();
+    ///
+    /// if let Some((seqn, recv_port, recv_time, message)) = flight_computer.listen() {
+    ///     // Do something here with received data
+    /// }
+    /// ```
     pub fn listen(&self) -> Option<(u32, u16, time::Duration, [u8; P_LIMIT - 4])> {
 
         // A buffer to put data in from the port.
@@ -305,6 +340,20 @@ impl FC {
 ///
 /// When we miss a packet or get an out of order packet we should log that
 /// for future analysis. This stores a error and builds a log-able message.
+///
+/// # Example
+///
+/// ```
+/// use rust_fc::io;
+///
+/// let seqerror = io::SequenceError {
+///     port: 35020,
+///     expected: 12345,
+///     received: 12349,
+/// };
+///
+/// // Now you can log or send the message somewhere
+/// ```
 pub struct SequenceError {
 
     /// Which port the packet error is from
