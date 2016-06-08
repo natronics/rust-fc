@@ -45,7 +45,7 @@ fn main() {
                     // We expect monotonically increasing sequence numbers.
                     // Anything received out of order is ignored. Real time
                     // systems can't do anything with stale data!
-                    if seqn == (last_adis_message + 1) {
+                    if seqn >= (last_adis_message + 1) {
 
                         // Unpack binary message into proper values with units
                         let adis = devices::recv_adis(&message);
