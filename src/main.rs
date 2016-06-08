@@ -1,6 +1,7 @@
 mod devices;
 mod io;
 mod state;
+mod control;
 
 fn main() {
     println!(r#"
@@ -23,6 +24,9 @@ fn main() {
 
     // New state vector
     let mut state: state::State = Default::default();
+
+    // New controller
+    let mut controller: control::Control = Default::default();
 
     // Track the sequence number for an ADIS message
     let mut adis_seqn_expected = 0;
@@ -73,6 +77,9 @@ fn main() {
 
                         // Since this is IMU data, we need to update the state vector
                         state.update_imu(recv_time, adis);
+
+                        // Do control based on new state
+                        controller.pid(&state);
 
                         // Log ADIS and STAT. Send ADIS out over telemetry
                         flight_computer.log_message(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS).unwrap();

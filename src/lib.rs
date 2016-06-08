@@ -105,3 +105,4 @@ extern crate byteorder;
 pub mod devices;
 pub mod io;
 pub mod state;
+pub mod control;
