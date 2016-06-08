@@ -55,19 +55,18 @@ fn main() {
                         };
                         flight_computer.log_message(&seqerror.as_message(), io::SEQE_NAME, recv_time, io::SIZE_OF_SEQE).unwrap();
                     }
-                    if seqn > adis_seqn_expected {
-                        // Out of order packet! Log it
-                        let mut seqerror = io::SequenceError {
-                            port: recv_port,
-                            expected: adis_seqn_expected,
-                            received: seqn,
-                        };
-                        flight_computer.log_message(&seqerror.as_message(), io::SEQE_NAME, recv_time, io::SIZE_OF_SEQE).unwrap();
+                    // As long as we have *new* data it's okay
+                    if seqn >= adis_seqn_expected {
 
-                        // Update sequence number counter
-                        adis_seqn_expected = seqn + 1;
-                    }
-                    if seqn == adis_seqn_expected {
+                        // but if it's from the future it's still an error, Log it.
+                        if seqn > adis_seqn_expected {
+                            let mut seqerror = io::SequenceError {
+                                port: recv_port,
+                                expected: adis_seqn_expected,
+                                received: seqn,
+                            };
+                            flight_computer.log_message(&seqerror.as_message(), io::SEQE_NAME, recv_time, io::SIZE_OF_SEQE).unwrap();
+                        }
 
                         // Unpack binary message into proper values with units
                         let adis = devices::recv_adis(&message);
@@ -75,11 +74,9 @@ fn main() {
                         // Since this is IMU data, we need to update the state vector
                         state.update_imu(recv_time, adis);
 
-                        // Log updated state
-                        flight_computer.log_message(&state.as_message(), state::STATE_NAME, recv_time, state::SIZE_OF_STATE).unwrap();
-
-                        // Log ADIS message and send it out over telemetry
+                        // Log ADIS and STAT. Send ADIS out over telemetry
                         flight_computer.log_message(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS).unwrap();
+                        flight_computer.log_message(&state.as_message(), state::STATE_NAME, recv_time, state::SIZE_OF_STATE).unwrap();
                         flight_computer.telemetry(&message, devices::ADIS_NAME, recv_time, devices::SIZE_OF_ADIS);
 
                         // Update sequence number counter
