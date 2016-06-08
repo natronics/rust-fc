@@ -75,7 +75,7 @@ fn pack_header(name: [u8; 4], time: time::Duration, message_size: usize) -> [u8;
 
         // Fields:
         // ID (Four character code)
-        header.write(&name);
+        header.write(&name).unwrap();
 
         // Timestamp, 6 bytes nanoseconds from boot
         let nanos: u64 = (time.as_secs() * 1000000000) + time.subsec_nanos() as u64;
@@ -85,7 +85,7 @@ fn pack_header(name: [u8; 4], time: time::Duration, message_size: usize) -> [u8;
             t.write_u64::<BigEndian>(nanos).unwrap();
         }
         // Truncate to 6 least significant bytes
-        header.write(&time_buffer[2..8]);
+        header.write(&time_buffer[2..8]).unwrap();
 
         // Size:
         header.write_u16::<BigEndian>(message_size as u16).unwrap();
