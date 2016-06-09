@@ -52,7 +52,7 @@ fn main() {
                     if seqn < adis_seqn_expected {
 
                         // Out of order packet! Log it
-                        let mut seqerror = io::SequenceError {
+                        let seqerror = io::SequenceError {
                             port: recv_port,
                             expected: adis_seqn_expected,
                             received: seqn,
@@ -64,7 +64,7 @@ fn main() {
 
                         // but if it's from the future it's still an error, Log it.
                         if seqn > adis_seqn_expected {
-                            let mut seqerror = io::SequenceError {
+                            let seqerror = io::SequenceError {
                                 port: recv_port,
                                 expected: adis_seqn_expected,
                                 received: seqn,
