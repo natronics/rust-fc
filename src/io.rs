@@ -373,7 +373,7 @@ impl SequenceError {
     ///
     /// The PSAS file and message type is always a byte array with big-endian
     /// representation of fields in a struct.
-    pub fn as_message(&mut self) -> [u8; SIZE_OF_SEQE] {
+    pub fn as_message(&self) -> [u8; SIZE_OF_SEQE] {
         let mut buffer = [0u8; SIZE_OF_SEQE];
         {
             let mut message = Cursor::<&mut [u8]>::new(&mut buffer);
