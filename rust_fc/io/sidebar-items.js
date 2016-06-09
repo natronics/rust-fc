@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["PSAS_ADIS_PORT","Expected port for ADIS messages"],["SEQE_NAME","Sequence Error message name (ASCII: SEQE)"],["SIZE_OF_SEQE","Sequence Error message size (bytes)"]],"struct":[["FC","Flight Computer IO."],["SequenceError","A sequence error message."]]});

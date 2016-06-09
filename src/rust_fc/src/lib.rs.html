@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="Source to the Rust file `src/lib.rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang">
+
+    <title>lib.rs.html -- source</title>
+
+    <link rel="stylesheet" type="text/css" href="../../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content source"><pre class="line-numbers"><span id="1">  1</span>
+<span id="2">  2</span>
+<span id="3">  3</span>
+<span id="4">  4</span>
+<span id="5">  5</span>
+<span id="6">  6</span>
+<span id="7">  7</span>
+<span id="8">  8</span>
+<span id="9">  9</span>
+<span id="10"> 10</span>
+<span id="11"> 11</span>
+<span id="12"> 12</span>
+<span id="13"> 13</span>
+<span id="14"> 14</span>
+<span id="15"> 15</span>
+<span id="16"> 16</span>
+<span id="17"> 17</span>
+<span id="18"> 18</span>
+<span id="19"> 19</span>
+<span id="20"> 20</span>
+<span id="21"> 21</span>
+<span id="22"> 22</span>
+<span id="23"> 23</span>
+<span id="24"> 24</span>
+<span id="25"> 25</span>
+<span id="26"> 26</span>
+<span id="27"> 27</span>
+<span id="28"> 28</span>
+<span id="29"> 29</span>
+<span id="30"> 30</span>
+<span id="31"> 31</span>
+<span id="32"> 32</span>
+<span id="33"> 33</span>
+<span id="34"> 34</span>
+<span id="35"> 35</span>
+<span id="36"> 36</span>
+<span id="37"> 37</span>
+<span id="38"> 38</span>
+<span id="39"> 39</span>
+<span id="40"> 40</span>
+<span id="41"> 41</span>
+<span id="42"> 42</span>
+<span id="43"> 43</span>
+<span id="44"> 44</span>
+<span id="45"> 45</span>
+<span id="46"> 46</span>
+<span id="47"> 47</span>
+<span id="48"> 48</span>
+<span id="49"> 49</span>
+<span id="50"> 50</span>
+<span id="51"> 51</span>
+<span id="52"> 52</span>
+<span id="53"> 53</span>
+<span id="54"> 54</span>
+<span id="55"> 55</span>
+<span id="56"> 56</span>
+<span id="57"> 57</span>
+<span id="58"> 58</span>
+<span id="59"> 59</span>
+<span id="60"> 60</span>
+<span id="61"> 61</span>
+<span id="62"> 62</span>
+<span id="63"> 63</span>
+<span id="64"> 64</span>
+<span id="65"> 65</span>
+<span id="66"> 66</span>
+<span id="67"> 67</span>
+<span id="68"> 68</span>
+<span id="69"> 69</span>
+<span id="70"> 70</span>
+<span id="71"> 71</span>
+<span id="72"> 72</span>
+<span id="73"> 73</span>
+<span id="74"> 74</span>
+<span id="75"> 75</span>
+<span id="76"> 76</span>
+<span id="77"> 77</span>
+<span id="78"> 78</span>
+<span id="79"> 79</span>
+<span id="80"> 80</span>
+<span id="81"> 81</span>
+<span id="82"> 82</span>
+<span id="83"> 83</span>
+<span id="84"> 84</span>
+<span id="85"> 85</span>
+<span id="86"> 86</span>
+<span id="87"> 87</span>
+<span id="88"> 88</span>
+<span id="89"> 89</span>
+<span id="90"> 90</span>
+<span id="91"> 91</span>
+<span id="92"> 92</span>
+<span id="93"> 93</span>
+<span id="94"> 94</span>
+<span id="95"> 95</span>
+<span id="96"> 96</span>
+<span id="97"> 97</span>
+<span id="98"> 98</span>
+<span id="99"> 99</span>
+<span id="100">100</span>
+<span id="101">101</span>
+<span id="102">102</span>
+<span id="103">103</span>
+<span id="104">104</span>
+<span id="105">105</span>
+<span id="106">106</span>
+<span id="107">107</span>
+<span id="108">108</span>
+</pre><pre class='rust '>
+<span class='doccomment'>/*! # rust-fc
+
+A minimal clone of PSAS&#39;s [av3-fc](https://github.com/psas/av3-fc) rocket
+flight computer executive process written in Rust for fun.
+
+## Motivation
+
+Rust is a newer language designed to be a fast systems programing language with
+guaranteed memory safety. I wanted to play with Rust and build something
+somewhat non-trivial to get to know the language and it&#39;s features.
+
+For many years I&#39;ve helped [PSAS](http://psas.pdx.edu) design, build, and fly
+high power experimental rockets. Over the years we&#39;ve built a fairly complex
+&quot;space program&quot; including lots of pieces of code, from simulation and design,
+to flight worthy firmware.
+
+Here&#39;s what I&#39;ll re-write in Rust:
+
+
+## The PSAS Flight Computer
+
+The central program that controls and orchestrates the flight of the PSAS
+rocket is a single program written in C executed on a small computer in the
+rocket running Linux.
+
+The rocket hardware and flight computer design was always a fast moving target
+as we tried different modular systems, iterating on what works and throwing
+away what doesn&#39;t. So there was never any formal specification document.
+Instead we&#39;ll use the most recent ([Launch-12](https://github.com/psas/Launch-12))
+implementation as our guide.
+
+
+### Flight Computer Architecture: Overview
+
+The rocket flight computer stack is actually made up of lots of computers. There
+are several STM32 microcontrollers that do hard-real-time work like talking to
+sensors or managing power. There is a central computer (an Intel Atom
+processor) running Linux with almost nothing installed except our main flight
+computer code. All inter-module communication is over a dedicated Ethernet
+network on the rocket.
+
+A basic diagram looks like this:
+
+```c
+              ROCKET                                              GROUND
+
+   ---------------      Ethernet     +------+     WiFi      ---------------
+  | Sensor/Device | ===============&gt; |  FC  | ~ ~ ~ ~ ~ ~&gt; | Ground station |
+   ---------------                   +------+               ----------------
+                                        ||
+   ---------------------     Ethernet   ||
+  | Actuator (Controls) | &lt;=============++
+   ---------------------
+```
+
+The main purpose of the Flight Computer then is to
+
+ 1. **Read in data** from the network
+ 2. **Log data** to local file system for analysis later
+ 3. Efficiently pack and then **relay current data to the ground** (over WiFi)
+ 4. **Update the current state vector** by integrating IMU sensor data
+ 5. **Send control messages** out to actuators on the rocket by applying a control filter to the state vector
+
+
+## What I&#39;ll Copy In Rust
+
+The full flight computer was built over many years with features like a
+[code-generated `main` function](https://github.com/psas/elderberry) that
+writes an event loop to control the program flow, and pieces of code for
+consistent ARM and SAFE commands (the flight computer could disable the
+ignition circuit on certain error conditions before launch), and a PID
+roll-stabilization control system.
+
+I don&#39;t feel like it&#39;s necessary to duplicated _every_ single piece of that
+functionality here, so instead I&#39;ll try for a minimum viable product that:
+
+ - Receives messages (over a network) of one type: the IMU data
+ - Tracks state in 1 dimension (vertical height and speed only)
+ - Log data to disk
+ - Send telemetry back over a network
+ - Send some kind of &#39;control&#39; message based on current state
+
+Specifically there is no event loop and no commands to interpret, so it should
+be much simpler to implement.
+
+
+## The Rust Implementation
+
+There are a few modules for keeping similar code together:
+
+ - A **devices** module that will know how to read IMU data from an array of bytes
+ - An **io** module that will keep track of all sockets and file handlers. This is the main interface for reading and writing data
+ - A **state** module that will track state
+ - And a **control** module that compute a control signal
+
+This is not too different than how we divided up the original C flight
+computer.
+
+The `main` function will simply initialize the modules and then loop forever
+listening for data.
+*/</span>
+
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>byteorder</span>;
+
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>devices</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>io</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>state</span>;
+<span class='kw'>pub</span> <span class='kw'>mod</span> <span class='ident'>control</span>;
+</pre>
+</section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../../";
+        window.currentCrate = "rust_fc";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../../../jquery.js"></script>
+    <script src="../../../main.js"></script>
+    
+    <script defer src="../../../search-index.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["SIZE_OF_STATE","State message size (bytes)"],["STATE_NAME","State message name (ASCII: STAT)"]],"struct":[["State","A representation for the current state vector in MKS units."]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"constant":[["ADIS_NAME","ADIS message name (ASCII: ADIS)"],["SIZE_OF_ADIS","ADIS message size (bytes)"]],"fn":[["recv_adis","Read an ADIS message from raw bytes."]],"struct":[["ADIS","Unwrapped and converted ADIS IMU data."]]});

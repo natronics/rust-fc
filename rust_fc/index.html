@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `rust_fc` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, rust_fc">
+
+    <title>rust_fc - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'rust_fc', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>rust_fc</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a id='src-0' class='srclink' href='../src/rust_fc/src/lib.rs.html#1-108' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'>
+<h1 id='rust-fc' class='section-header'><a href='#rust-fc'>rust-fc</a></h1>
+<p>A minimal clone of PSAS&#39;s <a href="https://github.com/psas/av3-fc">av3-fc</a> rocket
+flight computer executive process written in Rust for fun.</p>
+
+<h2 id='motivation' class='section-header'><a href='#motivation'>Motivation</a></h2>
+<p>Rust is a newer language designed to be a fast systems programing language with
+guaranteed memory safety. I wanted to play with Rust and build something
+somewhat non-trivial to get to know the language and it&#39;s features.</p>
+
+<p>For many years I&#39;ve helped <a href="http://psas.pdx.edu">PSAS</a> design, build, and fly
+high power experimental rockets. Over the years we&#39;ve built a fairly complex
+&quot;space program&quot; including lots of pieces of code, from simulation and design,
+to flight worthy firmware.</p>
+
+<p>Here&#39;s what I&#39;ll re-write in Rust:</p>
+
+<h2 id='the-psas-flight-computer' class='section-header'><a href='#the-psas-flight-computer'>The PSAS Flight Computer</a></h2>
+<p>The central program that controls and orchestrates the flight of the PSAS
+rocket is a single program written in C executed on a small computer in the
+rocket running Linux.</p>
+
+<p>The rocket hardware and flight computer design was always a fast moving target
+as we tried different modular systems, iterating on what works and throwing
+away what doesn&#39;t. So there was never any formal specification document.
+Instead we&#39;ll use the most recent (<a href="https://github.com/psas/Launch-12">Launch-12</a>)
+implementation as our guide.</p>
+
+<h3 id='flight-computer-architecture-overview' class='section-header'><a href='#flight-computer-architecture-overview'>Flight Computer Architecture: Overview</a></h3>
+<p>The rocket flight computer stack is actually made up of lots of computers. There
+are several STM32 microcontrollers that do hard-real-time work like talking to
+sensors or managing power. There is a central computer (an Intel Atom
+processor) running Linux with almost nothing installed except our main flight
+computer code. All inter-module communication is over a dedicated Ethernet
+network on the rocket.</p>
+
+<p>A basic diagram looks like this:</p>
+
+<pre><code class="language-c">              ROCKET                                              GROUND
+
+   ---------------      Ethernet     +------+     WiFi      ---------------
+  | Sensor/Device | ===============&gt; |  FC  | ~ ~ ~ ~ ~ ~&gt; | Ground station |
+   ---------------                   +------+               ----------------
+                                        ||
+   ---------------------     Ethernet   ||
+  | Actuator (Controls) | &lt;=============++
+   ---------------------
+</code></pre>
+
+<p>The main purpose of the Flight Computer then is to</p>
+
+<ol>
+<li><strong>Read in data</strong> from the network</li>
+<li><strong>Log data</strong> to local file system for analysis later</li>
+<li>Efficiently pack and then <strong>relay current data to the ground</strong> (over WiFi)</li>
+<li><strong>Update the current state vector</strong> by integrating IMU sensor data</li>
+<li><strong>Send control messages</strong> out to actuators on the rocket by applying a control filter to the state vector</li>
+</ol>
+
+<h2 id='what-ill-copy-in-rust' class='section-header'><a href='#what-ill-copy-in-rust'>What I&#39;ll Copy In Rust</a></h2>
+<p>The full flight computer was built over many years with features like a
+<a href="https://github.com/psas/elderberry">code-generated <code>main</code> function</a> that
+writes an event loop to control the program flow, and pieces of code for
+consistent ARM and SAFE commands (the flight computer could disable the
+ignition circuit on certain error conditions before launch), and a PID
+roll-stabilization control system.</p>
+
+<p>I don&#39;t feel like it&#39;s necessary to duplicated <em>every</em> single piece of that
+functionality here, so instead I&#39;ll try for a minimum viable product that:</p>
+
+<ul>
+<li>Receives messages (over a network) of one type: the IMU data</li>
+<li>Tracks state in 1 dimension (vertical height and speed only)</li>
+<li>Log data to disk</li>
+<li>Send telemetry back over a network</li>
+<li>Send some kind of &#39;control&#39; message based on current state</li>
+</ul>
+
+<p>Specifically there is no event loop and no commands to interpret, so it should
+be much simpler to implement.</p>
+
+<h2 id='the-rust-implementation' class='section-header'><a href='#the-rust-implementation'>The Rust Implementation</a></h2>
+<p>There are a few modules for keeping similar code together:</p>
+
+<ul>
+<li>A <strong>devices</strong> module that will know how to read IMU data from an array of bytes</li>
+<li>An <strong>io</strong> module that will keep track of all sockets and file handlers. This is the main interface for reading and writing data</li>
+<li>A <strong>state</strong> module that will track state</li>
+<li>And a <strong>control</strong> module that compute a control signal</li>
+</ul>
+
+<p>This is not too different than how we divided up the original C flight
+computer.</p>
+
+<p>The <code>main</code> function will simply initialize the modules and then loop forever
+listening for data.</p>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='control/index.html'
+                                  title='rust_fc::control'>control</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='devices/index.html'
+                                  title='rust_fc::devices'>devices</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='io/index.html'
+                                  title='rust_fc::io'>io</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class='mod' href='state/index.html'
+                                  title='rust_fc::state'>state</a></td>
+                           <td class='docblock short'>
+                                
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "rust_fc";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script defer src="../search-index.js"></script>
+</body>
+</html>
